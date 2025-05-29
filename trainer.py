@@ -31,6 +31,10 @@ def build_model(num_classes=2):
     return model
 
 # ========== Trainer 类 ==========
+import os
+import torch
+import torch.nn as nn
+
 class Trainer:
     def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler, save_dir="checkpoints"):
         self.model = model.to(device)
