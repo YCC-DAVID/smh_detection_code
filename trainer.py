@@ -32,7 +32,7 @@ def build_model(num_classes=2):
 
 # ========== Trainer 类 ==========
 class Trainer:
-    def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler):
+    def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler, save_dir="checkpoints"):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -40,6 +40,10 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.criterion = nn.CrossEntropyLoss()
+        self.save_dir = save_dir
+        self.best_val_acc = 0.0
+
+        os.makedirs(self.save_dir, exist_ok=True)
 
     def train_one_epoch(self):
         self.model.train()
@@ -79,6 +83,16 @@ class Trainer:
 
         return total_loss / total, correct / total
 
+    def save_model(self, epoch, is_best=False):
+        filename = f"best_model.pth" if is_best else f"epoch_{epoch+1}.pth"
+        path = os.path.join(self.save_dir, filename)
+        torch.save({
+            'epoch': epoch + 1,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict(),
+        }, path)
+
     def train(self, epochs):
         for epoch in range(epochs):
             train_loss, train_acc = self.train_one_epoch()
@@ -88,3 +102,11 @@ class Trainer:
             print(f"[Epoch {epoch+1}] "
                   f"Train Loss: {train_loss:.4f}, Acc: {train_acc:.4f} | "
                   f"Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
+
+            # 保存当前 epoch 的模型
+            self.save_model(epoch)
+
+            # 如果当前验证准确率是最佳，保存最佳模型
+            if val_acc > self.best_val_acc:
+                self.best_val_acc = val_acc
+                self.save_model(epoch, is_best=True)
