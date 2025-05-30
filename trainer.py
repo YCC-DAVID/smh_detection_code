@@ -5,6 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms, models, datasets
 from tqdm import tqdm
+from datetime import datetime
+
 
 # ========== 数据加载器 ==========
 def build_dataloaders(data_dir, batch_size=32):
@@ -31,12 +33,9 @@ def build_model(num_classes=2):
     return model
 
 # ========== Trainer 类 ==========
-import os
-import torch
-import torch.nn as nn
 
 class Trainer:
-    def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler, save_dir="checkpoints"):
+    def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler, save_dir="checkpoints", logger=None):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -46,6 +45,7 @@ class Trainer:
         self.criterion = nn.CrossEntropyLoss()
         self.save_dir = save_dir
         self.best_val_acc = 0.0
+        self.logger = logger
 
         os.makedirs(self.save_dir, exist_ok=True)
 
@@ -88,7 +88,10 @@ class Trainer:
         return total_loss / total, correct / total
 
     def save_model(self, epoch, is_best=False):
-        filename = f"best_model.pth" if is_best else f"epoch_{epoch+1}.pth"
+        time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # 决定文件名：最佳模型 or 普通 epoch 模型
+        filename = f"best_model_{time_str}.pth" if is_best else f"epoch_{epoch+1}_{time_str}.pth"
         path = os.path.join(self.save_dir, filename)
         torch.save({
             'epoch': epoch + 1,
@@ -106,9 +109,12 @@ class Trainer:
             print(f"[Epoch {epoch+1}] "
                   f"Train Loss: {train_loss:.4f}, Acc: {train_acc:.4f} | "
                   f"Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
+            if self.logger is not None:
+                self.logger.log({"Train Loss":train_loss,"Train Acc":train_acc,"Val loss":val_loss,"Val acc":val_acc})
 
             # 保存当前 epoch 的模型
-            self.save_model(epoch)
+            if (epoch + 1) % 10 == 0:
+                self.save_model(epoch)
 
             # 如果当前验证准确率是最佳，保存最佳模型
             if val_acc > self.best_val_acc:
