@@ -8,7 +8,6 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 import numpy as np
 import random
 
-a=0
 
 
 def set_seed(seed=42):

@@ -114,3 +114,4 @@ class Trainer:
             if val_acc > self.best_val_acc:
                 self.best_val_acc = val_acc
                 self.save_model(epoch, is_best=True)
+                test=0
