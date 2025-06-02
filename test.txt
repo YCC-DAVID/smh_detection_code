@@ -4,3 +4,5 @@ after readme, test if push function still workable.
 test if the pull/push function is good
 
 just try again
+
+test on macbook
