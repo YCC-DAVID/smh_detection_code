@@ -35,7 +35,7 @@ def build_model(num_classes=2):
 # ========== Trainer 类 ==========
 
 class Trainer:
-    def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler, save_dir="checkpoints", logger=None):
+    def __init__(self, model, train_loader, val_loader, device, optimizer, scheduler, save_dir="checkpoints", logger=None,status='training'):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -46,6 +46,7 @@ class Trainer:
         self.save_dir = save_dir
         self.best_val_acc = 0.0
         self.logger = logger
+        self.status = status
 
         os.makedirs(self.save_dir, exist_ok=True)
 
@@ -99,6 +100,8 @@ class Trainer:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
         }, path)
+        with open(os.path.join(self.save_dir, "last_checkpoint.txt"), "w") as f:
+            f.write(path)
 
     def train(self, epochs):
         for epoch in range(epochs):
@@ -106,7 +109,7 @@ class Trainer:
             val_loss, val_acc = self.validate()
             self.scheduler.step()
 
-            print(f"[Epoch {epoch+1}] "
+            print(self.status,f"[Epoch {epoch+1}] "
                   f"Train Loss: {train_loss:.4f}, Acc: {train_acc:.4f} | "
                   f"Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
             if self.logger is not None:
