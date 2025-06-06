@@ -98,8 +98,8 @@ def main():
     # 加载数据集
     srcdataset, tardataset = None, None  # 先初始化为 None
 
-    src_path = 'AfricanData'
-    tar_path = 'AmericanData'
+    src_path = '/home/shared_data/salmonella_detection/AugmentedData/AfricanDataAug'
+    tar_path = '/home/shared_data/salmonella_detection/OriginalData/AmericanData'
     generator = torch.Generator().manual_seed(42)
 
     if os.path.exists(src_path):
@@ -117,8 +117,8 @@ def main():
         train_size = int(0.9 * len(srcdataset))
         val_size = len(srcdataset) - train_size
         train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
-        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2)
-        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
     else:
         raise FileNotFoundError(f"Path does not exist: {src_path}")
 
@@ -177,15 +177,15 @@ def main():
         check_freez_block_res50(model,args.position[0]) # freeze the conv layer not bn layer
         check_active_block_res50(model,args.position[0]+1) # unfreeze the rest block
     optimizer_ft = optim.SGD(model.parameters(),
-                        lr=0.01,                 # 初始学习率
+                        lr=1e-4,                 # 初始学习率
                         momentum=0.9,          # 动量
                         weight_decay=5e-4)     # L2 正则
 
     # Cosine decay 调度器
-    scheduler = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
+    scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
     
 
-    fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler,"ft_checkpoints",logger,status='fine tuning')
+    fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft,"ft_checkpoints",logger,status='fine tuning')
     fine_tuning.train(ft_epochs)
 
 if __name__ == '__main__':
