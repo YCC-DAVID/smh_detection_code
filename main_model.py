@@ -104,14 +104,14 @@ def main():
 
     if os.path.exists(src_path):
         srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
-        mean, std = compute_mean_std(srcdataset)
-        print("Mean:", mean)                #Mean: tensor([0.5586, 0.5077, 0.4405])
-        print("Std:", std)                  #Std: tensor([0.1756, 0.1774, 0.1781])
+        # mean, std = compute_mean_std(srcdataset)
+        # print("Mean:", mean)                #Mean: tensor([0.5586, 0.5077, 0.4405])
+        # print("Std:", std)                  #Std: tensor([0.1756, 0.1774, 0.1781])
         transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=mean,  # ResNet 预训练所用的均值方差
-                            std=std)
+        transforms.Normalize(mean=[0.4622, 0.4539, 0.4432],  # ResNet 预训练所用的均值方差
+                            std=[0.1910, 0.1921, 0.1961])
                             ])
         srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
         train_size = int(0.9 * len(srcdataset))
@@ -125,7 +125,7 @@ def main():
     if os.path.exists(tar_path):
         tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
         ft_size = int(0.9 * len(tardataset))
-        ft_val_size = len(tardataset) - train_size
+        ft_val_size = len(tardataset) - ft_size
         ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
         ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
         ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
