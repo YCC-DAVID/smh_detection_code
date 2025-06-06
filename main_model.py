@@ -127,8 +127,8 @@ def main():
         ft_size = int(0.9 * len(tardataset))
         ft_val_size = len(tardataset) - train_size
         ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
-        ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=2)
-        ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=2)
+        ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
+        ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
 
     else:
         raise FileNotFoundError(f"Path does not exist: {tar_path}")
