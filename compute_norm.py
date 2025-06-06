@@ -8,19 +8,20 @@ from torch.multiprocessing import freeze_support
 def compute_mean_std(dataset):
     loader = DataLoader(dataset, batch_size=64, shuffle=False, num_workers=4)
 
-    mean = torch.zeros(3)
-    std = torch.zeros(3)
-    total_images = 0
+    mean = 0.
+    std = 0.
+    nb_samples = 0.
 
     for images, _ in tqdm(loader, desc="Computing mean/std"):
-        batch_samples = images.size(0)  # batch size (64)
-        images = images.view(batch_samples, 3, -1)  # (B, 3, H*W)
-        mean += images.mean(2).sum(0)  # (3,)
+        batch_samples = images.size(0)
+        images = images.view(batch_samples, images.size(1), -1)  # (B, C, H*W)
+        mean += images.mean(2).sum(0)
         std += images.std(2).sum(0)
-        total_images += batch_samples
+        nb_samples += batch_samples
 
-    mean /= total_images
-    std /= total_images
+    mean /= nb_samples
+    std /= nb_samples
+
     return mean, std
 
 # 用未标准化的 transform
