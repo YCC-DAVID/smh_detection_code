@@ -6,7 +6,7 @@ from tqdm import tqdm
 from torch.multiprocessing import freeze_support
 
 def compute_mean_std(dataset):
-    loader = DataLoader(dataset, batch_size=64, shuffle=False, num_workers=4)
+    loader = DataLoader(dataset, batch_size=64, shuffle=False, num_workers=0)
 
     mean = 0.
     std = 0.
