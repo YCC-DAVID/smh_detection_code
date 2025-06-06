@@ -160,7 +160,7 @@ def main():
 
         # Cosine decay 调度器
         scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
-        training = trainer.Trainer(model, train_loader, val_loader, device, optimizer, scheduler,logger)
+        training = trainer.Trainer(model, train_loader, val_loader, device, optimizer, scheduler,logger=logger)
         training.train(epochs)
 
  
