@@ -3,8 +3,8 @@ import os
 
 def run_task(param):
     print(f"Running task with {param}")
-    os.system(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code main_model.py {param}")
-    print(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code main_model.py {param}")
+    os.system(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
+    print(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
 
 
 params = ["-p 3 -ft_epo 5 -resume",
