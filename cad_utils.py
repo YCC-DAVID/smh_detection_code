@@ -45,12 +45,12 @@ def generate_name(args):
     if hasattr(args, 'forward_hook') and args.forward_hook:
         name += '_fhook'
 
-    if hasattr(args, 'freez_epoch') and args.freez_epoch:
+    if hasattr(args, 'fine_epoch') and args.freez_epoch:
         # name += '_fz_epo'
-        name += f'_fz_epo_{args.freez_epoch}'
+        name += f'_ft_epo_{args.freez_epoch}'
 
-    if hasattr(args, 'compression') and args.compression:
-        name += f'_cmp_{args.compression}'
+    if hasattr(args, 'resume') and args.compression:
+        name += f'_res_{args.compression}'
         if hasattr(args, 'tolerance') and args.tolerance:
             name += f'_tol_{args.tolerance}'
 

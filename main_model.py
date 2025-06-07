@@ -16,11 +16,11 @@ from cad_utils import generate_name,get_handle_front,check_active_block_res50,ch
 
 parser = argparse.ArgumentParser(description='Propert ResNets for CIFAR10 in pytorch')
 parser.add_argument('-p', '--position',nargs = '+', default=None, type=int, metavar='N',
-                    help='The position to register hook and freeze')
+                    help='The position to freeze')
 # parser.add_argument('-cmp', '--compression', action='store_true',
 #                     help='if compress the activation')
-# parser.add_argument('-fhook', '--forward_hook', action='store_true',
-#                     help='if compress the activation')
+parser.add_argument('-resume', '--resume', action='store_true',
+                    help='if exist checkpoint will be use')
 # parser.add_argument('-drp', '--drop', nargs = '+', default=None, type=int, metavar='N',
 #                     help='if drop the previous layer')
 # parser.add_argument('-tol', '--tolerance', nargs = '+', default=1e-3, type=float, metavar='N',
@@ -110,8 +110,8 @@ def main():
         transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.4622, 0.4539, 0.4432],  # ResNet 预训练所用的均值方差
-                            std=[0.1910, 0.1921, 0.1961])
+        transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],  # ResNet 预训练所用的均值方差
+                            std=[0.1387, 0.1396, 0.1512])
                             ])
         srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
         train_size = int(0.9 * len(srcdataset))
@@ -124,7 +124,7 @@ def main():
 
     if os.path.exists(tar_path):
         tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
-        ft_size = int(0.9 * len(tardataset))
+        ft_size = int(0.7 * len(tardataset))
         ft_val_size = len(tardataset) - ft_size
         ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
         ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
@@ -151,7 +151,7 @@ def main():
     save_dir = "checkpoints"
     checkpoint_record = os.path.join(save_dir, "last_checkpoint.txt")
 
-    if not os.path.exists(checkpoint_record):
+    if not os.path.exists(checkpoint_record) or (hasattr(args, 'position') and args.position is not None):
         print("checkpoint does not exist")
         optimizer = optim.SGD(model.parameters(),
                             lr=0.1,                 # 初始学习率
