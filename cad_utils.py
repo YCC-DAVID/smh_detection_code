@@ -45,7 +45,7 @@ def generate_name(args):
     if hasattr(args, 'forward_hook') and args.forward_hook:
         name += '_fhook'
 
-    if hasattr(args, 'fine_epoch') and args.freez_epoch:
+    if hasattr(args, 'fine_epoch') and args.fine_epoch:
         # name += '_fz_epo'
         name += f'_ft_epo_{args.freez_epoch}'
 
