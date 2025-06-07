@@ -47,10 +47,10 @@ def generate_name(args):
 
     if hasattr(args, 'fine_epoch') and args.fine_epoch:
         # name += '_fz_epo'
-        name += f'_ft_epo_{args.freez_epoch}'
+        name += f'_ft_epo_{args.fine_epoch}'
 
-    if hasattr(args, 'resume') and args.compression:
-        name += f'_res_{args.compression}'
+    if hasattr(args, 'resume') and args.resume:
+        name += f'_res_{args.resume}'
         if hasattr(args, 'tolerance') and args.tolerance:
             name += f'_tol_{args.tolerance}'
 
