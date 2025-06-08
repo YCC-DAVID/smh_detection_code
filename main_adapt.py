@@ -56,6 +56,7 @@ def main():
     run_name = args.run_name
     resume = args.resume
     load_from = args.load_from
+    
 
     wandb.init(
         project="conv-adapter-finetune",
@@ -87,7 +88,7 @@ def main():
         # 源数据集训练基础模型
         train_loader, val_loader, _, _ = build_dataloaders(src_path, None, batch_size, generator)
 
-    model = build_model(model_name='resnet50_conv_adapter', pretrained=True)
+    model = build_model(model_name='resnet50', pretrained=True)
     model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
     if adapter_only:
