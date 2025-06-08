@@ -3,7 +3,7 @@ import os
 
 SRC_PATH = "/home/shared_data/salmonella_detection/AugmentedData/AfricanDataAug"
 TAR_PATH = "/home/shared_data/salmonella_detection/OriginalData/AmericanData"
-PY_SCRIPT = "/home/chence/workspace/shm_detection/freezing/smh_detection_code/main_adapter_train.py"
+PY_SCRIPT = "/home/chence/workspace/shm_detection/freezing/smh_detection_code/main_adapt.py"
 BASE_CKPT = "checkpoints/private1_base_model.pth"
 
 def run_task(cmd):
