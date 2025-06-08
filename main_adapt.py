@@ -89,7 +89,7 @@ def main():
         train_loader, val_loader, _, _ = build_dataloaders(src_path, None, batch_size, generator)
 
     model = build_model(model_name='resnet50', pretrained=True,num_classes=2)
-    model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
+    # model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
     if adapter_only:
         freeze_backbone_except_adapter(model)
