@@ -27,7 +27,7 @@ parser.add_argument('-resume', '--resume', action='store_true',
 #                     help='the decompression tolerance')
 # parser.add_argument('-fzepo', '--freez_epoch', nargs = '+',type=int, metavar='N',
 #                     help='number of total epochs to run')
-parser.add_argument('-epo', '--epoch',default=160, type=int, metavar='N',
+parser.add_argument('-epo', '--epoch',default=100, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('-ft_epo', '--fine_epoch',default=10, type=int, metavar='N',
                     help='number of finetune epochs to run')
