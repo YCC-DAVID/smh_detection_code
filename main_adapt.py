@@ -7,6 +7,7 @@ from trainer import build_dataloaders, Trainer
 from models import build_model  # 来自 Conv-Adapter 仓库
 import wandb
 import argparse
+import shutil
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', type=str, required=True)
@@ -93,6 +94,12 @@ def main():
 
     # 启动训练
     trainer.train(epochs)
+
+    if not adapter_only:
+        with open("checkpoints/last_checkpoint.txt", "r") as f:
+            best_path = f.read().strip()
+        shutil.copy(best_path, "checkpoints/private1_base_model.pth")
+        print("base model saved as checkpoints/private1_base_model.pth")
 
     wandb.finish()
 
