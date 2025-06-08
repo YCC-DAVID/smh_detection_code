@@ -1,7 +1,5 @@
-# main_adapter_train.py
 import os
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from trainer import build_dataloaders, Trainer
@@ -11,7 +9,8 @@ import argparse
 import shutil
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', type=str, required=True)
+parser.add_argument('--src_path', type=str, required=True)  # 源数据集路径
+parser.add_argument('--tar_path', type=str, default=None)  # 目标数据集路径，只有在 adapter_only 时需要
 parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--lr', type=float, default=1e-4)
@@ -35,11 +34,11 @@ def load_checkpoint(model, optimizer, scheduler, path):
         scheduler.load_state_dict(ckpt['scheduler_state_dict'])
         print(f"恢复模型: {path}")
     else:
-        print(f" 未找到恢复文件: {path}")
+        print(f"未找到恢复文件: {path}")
 
 def load_base_weights(model, path):
     if os.path.exists(path):
-        print(f" 加载基础模型参数自: {path}")
+        print(f"加载基础模型参数自: {path}")
         ckpt = torch.load(path, map_location=device)
         model.load_state_dict(ckpt['model_state_dict'], strict=False)
     else:
@@ -47,7 +46,8 @@ def load_base_weights(model, path):
 
 def main():
     args = parser.parse_args()
-    data_root = args.data_root
+    src_path = args.src_path
+    tar_path = args.tar_path
     num_classes = args.num_classes
     epochs = args.epochs
     batch_size = args.batch_size
@@ -70,17 +70,28 @@ def main():
         settings=wandb.Settings(init_timeout=300)
     )
 
-    train_loader, val_loader = build_dataloaders(data_root, batch_size)
+    # 使用修改后的数据加载器
+    generator = torch.Generator().manual_seed(42)
+
+    # 判断是否是 adapter_only 模式
+    if adapter_only:
+        if not tar_path or not os.path.exists(tar_path):
+            raise ValueError("需要提供有效的 --tar_path 以在 adapter_only 模式下进行微调")
+        # 目标数据集微调
+        train_loader, val_loader, ft_loader, ft_val_loader = build_dataloaders(src_path, tar_path, batch_size, generator)
+        train_loader = ft_loader
+        val_loader = ft_val_loader
+    else:
+        if not os.path.exists(src_path):
+            raise ValueError("需要提供有效的 --src_path 以进行基础模型训练")
+        # 源数据集训练基础模型
+        train_loader, val_loader, _, _ = build_dataloaders(src_path, None, batch_size, generator)
 
     model = build_model(name='resnet50_conv_adapter', pretrained=True)
-    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
     if adapter_only:
         freeze_backbone_except_adapter(model)
-
-    # ➕ 新增：加载基础模型参数
-    if load_from:
-        load_base_weights(model, load_from)
 
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
     scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
@@ -106,7 +117,7 @@ def main():
 
     trainer.train(epochs)
 
-    # 基础模型保存
+    #  基础模型保存
     if not adapter_only:
         with open("adapt_checkpoints/last_checkpoint.txt", "r") as f:
             best_path = f.read().strip()

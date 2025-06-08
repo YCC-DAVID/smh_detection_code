@@ -2,29 +2,53 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader,random_split
 from torchvision import transforms, models, datasets
 from tqdm import tqdm
 from datetime import datetime
 
 
 # ========== 数据加载器 ==========
-def build_dataloaders(data_dir, batch_size=32):
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],   # 用你自己计算的 mean/std
-                             std=[0.229, 0.224, 0.225])
-    ])
+def build_dataloaders(src_path, tar_path, batch_size, generator, transform=None):
+    # 数据预处理
+    if transform is None:
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5384, 0.5349, 0.5192], std=[0.1387, 0.1396, 0.1512])  # ResNet 预训练的均值和方差
+        ])
+    
+    # 处理源数据集（src_path）——用于训练
+    if os.path.exists(src_path):
+        srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
+        # 分割训练集和验证集
+        train_size = int(0.9 * len(srcdataset))
+        val_size = len(srcdataset) - train_size
+        train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
 
-    train_dataset = datasets.ImageFolder(os.path.join(data_dir, 'train'), transform=transform)
-    val_dataset = datasets.ImageFolder(os.path.join(data_dir, 'val'), transform=transform)
+        # 创建训练和验证 DataLoader
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    else:
+        raise FileNotFoundError(f"Path does not exist: {src_path}")
+    
+    # 处理目标数据集（tar_path）——用于微调
+    if os.path.exists(tar_path):
+        tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
+        ft_size = int(0.7 * len(tardataset))  # 70% 用于微调，30% 用于验证
+        ft_val_size = len(tardataset) - ft_size
+        ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+        # 创建微调训练和验证 DataLoader
+        ft_loader = DataLoader(ft_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+        ft_val_loader = DataLoader(ft_val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    else:
+        raise FileNotFoundError(f"Path does not exist: {tar_path}")
 
-    print("Class to index mapping:", train_dataset.class_to_idx)
-    return train_loader, val_loader
+    # 输出类别映射
+    print("类别映射:", srcdataset.class_to_idx)
+
+    return train_loader, val_loader, ft_loader, ft_val_loader
 
 # ========== 模型构建 ==========
 def build_model(num_classes=2):
