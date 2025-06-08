@@ -78,14 +78,14 @@ def main():
         device=device,
         optimizer=optimizer,
         scheduler=scheduler,
-        save_dir="checkpoints",
+        save_dir="adapt_checkpoints",
         logger=wandb,
         status="adapter-only finetuning" if adapter_only else "full finetuning"
     )
 
     # Resume 模型（从 last_checkpoint.txt 中加载）
     if resume:
-        resume_path = "checkpoints/last_checkpoint.txt"
+        resume_path = "adapt_checkpoints/last_checkpoint.txt"
         if os.path.exists(resume_path):
             with open(resume_path, "r") as f:
                 ckpt_path = f.read().strip()
