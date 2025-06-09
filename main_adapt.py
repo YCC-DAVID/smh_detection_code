@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR,CosineAnnealingLR
 from trainer import build_dataloaders, Trainer
 from models import build_model
 import wandb
@@ -100,7 +100,7 @@ def main():
 
 
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-    scheduler = StepLR(optimizer, step_size=5, gamma=0.1)
+    scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
 
     trainer = Trainer(
         model=model,
