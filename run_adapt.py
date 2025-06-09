@@ -54,8 +54,8 @@ finetune_cmds_full_model = [
 if __name__ == "__main__":
 
     # 执行基础模型训练
-    print("=== Starting base model training... ===")
-    run_task(base_train_cmd)
+    # print("=== Starting base model training... ===")
+    # run_task(base_train_cmd)
 
     print("=== Base model training complete. Starting finetune tasks... ===")
 
