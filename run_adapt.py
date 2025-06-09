@@ -14,14 +14,14 @@ def run_task(cmd):
     print(f" Done: {cmd}")
 
 # 基础模型训练命令
-base_train_cmd = (
-    f"python {PY_SCRIPT} "
-    f"--src_path {SRC_PATH} "
-    f"--epochs 50 "
-    f"--num_classes 2 "
-    f"--run_name base_model_african "
-    f"--tuning_method full"
-)
+# base_train_cmd = (
+#     f"python {PY_SCRIPT} "
+#     f"--src_path {SRC_PATH} "
+#     f"--epochs 50 "
+#     f"--num_classes 2 "
+#     f"--run_name base_model_african "
+#     f"--tuning_method full"
+# )
 
 # 微调 epochs 设置（不同的训练轮数）
 ft_epochs = [5, 10, 15, 20]
