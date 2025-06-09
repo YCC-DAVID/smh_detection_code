@@ -33,7 +33,7 @@ finetune_cmds_adapter_only = [
     f"--epochs {ep} "
     f"--num_classes 2 "
     f"--load_from {BASE_CKPT} "
-    f"--tuning_method conv_adapt"
+    f"--tuning_method conv_adapt "
     f"--run_name ft_us_adapter_only_{ep}ep"
     for ep in ft_epochs
 ]
@@ -45,7 +45,7 @@ finetune_cmds_full_model = [
     f"--epochs {ep} "
     f"--num_classes 2 "
     f"--load_from {BASE_CKPT} "
-    f"--tuning_method full"
+    f"--tuning_method full "
     f"--run_name ft_us_full_model_{ep}ep"
     for ep in ft_epochs
 ]
