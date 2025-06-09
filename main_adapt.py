@@ -19,6 +19,13 @@ parser.add_argument('--num_classes', type=int, default=2)
 parser.add_argument('--run_name', type=str, default=None)
 parser.add_argument('--resume', action='store_true')
 parser.add_argument('--load_from', type=str, default=None, help='加载训练好的基础模型')
+
+parser.add_argument('--tuning_method', type=str, default='prompt')
+parser.add_argument('--prompt_size', default=10, type=int, help='prompt size')
+parser.add_argument('--kernel_size', default=3, type=int)
+parser.add_argument('--adapt_size', default=8, type=float)
+parser.add_argument('--adapt_scale', default=1.0, type=float)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def freeze_backbone_except_adapter(model):
@@ -56,6 +63,8 @@ def main():
     run_name = args.run_name
     resume = args.resume
     load_from = args.load_from
+
+   
     
 
     wandb.init(
@@ -88,11 +97,9 @@ def main():
         # 源数据集训练基础模型
         train_loader, val_loader, _, _ = build_dataloaders(src_path, None, batch_size, generator)
 
-    model = build_model(model_name='resnet50', pretrained=True,num_classes=2)
+    model = build_model(model_name='resnet50', pretrained=True,num_classes=2,tuning_method='conv_adapt',args=args)
     # model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
-    if adapter_only:
-        freeze_backbone_except_adapter(model)
 
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
     scheduler = StepLR(optimizer, step_size=5, gamma=0.1)

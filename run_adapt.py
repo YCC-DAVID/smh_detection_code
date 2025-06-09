@@ -20,6 +20,7 @@ base_train_cmd = (
     f"--epochs 50 "
     f"--num_classes 2 "
     f"--run_name base_model_african "
+    f"--tuning_method full"
 )
 
 # 微调 epochs 设置（不同的训练轮数）
@@ -32,17 +33,19 @@ finetune_cmds_adapter_only = [
     f"--epochs {ep} "
     f"--num_classes 2 "
     f"--load_from {BASE_CKPT} "
+    f"--tuning_method conv_adapt"
     f"--run_name ft_us_adapter_only_{ep}ep"
     for ep in ft_epochs
 ]
 
 finetune_cmds_full_model = [
     f"python {PY_SCRIPT} "
-    f"--src_path {SRC_PATH} "
+    f"--src_path {TAR_PATH} "
     f"--tar_path {TAR_PATH} "
     f"--epochs {ep} "
     f"--num_classes 2 "
     f"--load_from {BASE_CKPT} "
+    f"--tuning_method full"
     f"--run_name ft_us_full_model_{ep}ep"
     for ep in ft_epochs
 ]
