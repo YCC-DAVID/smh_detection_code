@@ -14,7 +14,7 @@ parser.add_argument('--tar_path', type=str, default=None)  # 目标数据集路�
 parser.add_argument('--epochs', type=int, default=10)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--lr', type=float, default=1e-4)
-parser.add_argument('--adapter_only', action='store_true')
+parser.add_argument('--finetune_only', action='store_true')
 parser.add_argument('--num_classes', type=int, default=2)
 parser.add_argument('--run_name', type=str, default=None)
 parser.add_argument('--resume', action='store_true')
@@ -59,22 +59,20 @@ def main():
     epochs = args.epochs
     batch_size = args.batch_size
     lr = args.lr
-    adapter_only = args.adapter_only
+    ft_only = args.finetune_only
     run_name = args.run_name
     resume = args.resume
     load_from = args.load_from
 
-   
-    
 
     wandb.init(
         project="conv-adapter-finetune",
-        name=str(run_name) if run_name else ("adapter_ft" if adapter_only else "full_ft"),
+        name=str(run_name) if run_name else ("adapter_ft" if ft_only else "full_ft"),
         config={
             "epochs": epochs,
             "batch_size": batch_size,
             "lr": lr,
-            "adapter_only": adapter_only,
+            "finetune_only": ft_only,
             "model": "resnet50_conv_adapter"
         },
         settings=wandb.Settings(init_timeout=300)
@@ -84,7 +82,7 @@ def main():
     generator = torch.Generator().manual_seed(42)
 
     # 判断是否是 adapter_only 模式
-    if adapter_only:
+    if ft_only:
         if not tar_path or not os.path.exists(tar_path):
             raise ValueError("需要提供有效的 --tar_path 以在 adapter_only 模式下进行微调")
         # 目标数据集微调
@@ -97,7 +95,7 @@ def main():
         # 源数据集训练基础模型
         train_loader, val_loader, _, _ = build_dataloaders(src_path, None, batch_size, generator)
 
-    model = build_model(model_name='resnet50', pretrained=True,num_classes=2,tuning_method='conv_adapt',args=args)
+    model = build_model(model_name='resnet50', pretrained=True,num_classes=2,tuning_method=args.tuning_method,args=args)
     # model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
 
@@ -113,7 +111,7 @@ def main():
         scheduler=scheduler,
         save_dir="adapt_checkpoints",
         logger=wandb,
-        status="adapter-only finetuning" if adapter_only else "full finetuning"
+        status="finetuning" if ft_only else "full training"
     )
 
     if resume:
@@ -126,7 +124,7 @@ def main():
     trainer.train(epochs)
 
     #  基础模型保存
-    if not adapter_only:
+    if not ft_only:
         with open("adapt_checkpoints/last_checkpoint.txt", "r") as f:
             best_path = f.read().strip()
         shutil.copy(best_path, "checkpoints/private1_base_model.pth")

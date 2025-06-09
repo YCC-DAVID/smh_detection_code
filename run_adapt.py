@@ -14,14 +14,14 @@ def run_task(cmd):
     print(f" Done: {cmd}")
 
 # 基础模型训练命令
-# base_train_cmd = (
-#     f"python {PY_SCRIPT} "
-#     f"--src_path {SRC_PATH} "
-#     f"--epochs 50 "
-#     f"--num_classes 2 "
-#     f"--run_name base_model_african "
-#     f"--tuning_method full"
-# )
+base_train_cmd = (
+    f"python {PY_SCRIPT} "
+    f"--src_path {SRC_PATH} "
+    f"--epochs 50 "
+    f"--num_classes 2 "
+    f"--run_name base_model_african "
+    f"--tuning_method full"
+)
 
 # 微调 epochs 设置（不同的训练轮数）
 ft_epochs = [5, 10, 15, 20]
@@ -29,7 +29,7 @@ finetune_cmds_adapter_only = [
     f"python {PY_SCRIPT} "
     f"--src_path {SRC_PATH} "
     f"--tar_path {TAR_PATH} "
-    f"--adapter_only "
+    f"--finetune_only "
     f"--epochs {ep} "
     f"--num_classes 2 "
     f"--load_from {BASE_CKPT} "
@@ -44,6 +44,7 @@ finetune_cmds_full_model = [
     f"--tar_path {TAR_PATH} "
     f"--epochs {ep} "
     f"--num_classes 2 "
+    f"--finetune_only "
     f"--load_from {BASE_CKPT} "
     f"--tuning_method full "
     f"--run_name ft_us_full_model_{ep}ep"
@@ -54,8 +55,8 @@ finetune_cmds_full_model = [
 if __name__ == "__main__":
 
     # 执行基础模型训练
-    # print("=== Starting base model training... ===")
-    # run_task(base_train_cmd)
+    print("=== Starting base model training... ===")
+    run_task(base_train_cmd)
 
     print("=== Base model training complete. Starting finetune tasks... ===")
 
