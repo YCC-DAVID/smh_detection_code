@@ -154,7 +154,7 @@ def main():
     if not os.path.exists(checkpoint_record) or (hasattr(args, 'resume') and args.resume is not True):
         print("checkpoint does not exist")
         optimizer = optim.SGD(model.parameters(),
-                            lr=0.1,                 # 初始学习率
+                            lr=0.01,                 # 初始学习率
                             momentum=0.9,          # 动量
                             weight_decay=5e-4)     # L2 正则
 
