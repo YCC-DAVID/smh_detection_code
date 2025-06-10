@@ -99,7 +99,14 @@ def main():
     # model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
 
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
+    # optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
+    optimizer = optim.SGD(
+        filter(lambda p: p.requires_grad, model.parameters()),
+        lr=lr,
+        momentum=0.9,
+        weight_decay=1e-4,
+        nesterov=True
+        )
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
 
     trainer = Trainer(
