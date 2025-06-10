@@ -14,9 +14,10 @@ def build_dataloaders(src_path, tar_path, batch_size, generator):
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.2),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
+        transforms.Resize(224,224),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],
-                         std=[0.1387, 0.1396, 0.1512])
+                             std=[0.1387, 0.1396, 0.1512])
     ])
 
     if not os.path.exists(src_path):
