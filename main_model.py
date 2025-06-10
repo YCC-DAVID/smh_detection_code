@@ -98,7 +98,7 @@ def main():
     # 加载数据集
     srcdataset, tardataset = None, None  # 先初始化为 None
 
-    src_path = '/home/shared_data/salmonella_detection/AugmentedData/AfricanDataAug'
+    src_path = '/home/shared_data/salmonella_detection/OriginalData/AmericanData'
     tar_path = '/home/shared_data/salmonella_detection/OriginalData/AmericanData'
     generator = torch.Generator().manual_seed(42)
 
