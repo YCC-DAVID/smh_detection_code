@@ -21,6 +21,8 @@ parser.add_argument('-p', '--position',nargs = '+', default=None, type=int, meta
 #                     help='if compress the activation')
 parser.add_argument('-resume', '--resume', action='store_true',
                     help='if exist checkpoint will be use')
+parser.add_argument('-ft', '--finetune', action='store_true',
+                    help='if exist checkpoint will be use')
 # parser.add_argument('-drp', '--drop', nargs = '+', default=None, type=int, metavar='N',
 #                     help='if drop the previous layer')
 # parser.add_argument('-tol', '--tolerance', nargs = '+', default=1e-3, type=float, metavar='N',
@@ -31,6 +33,9 @@ parser.add_argument('-epo', '--epoch',default=100, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('-ft_epo', '--fine_epoch',default=10, type=int, metavar='N',
                     help='number of finetune epochs to run')
+parser.add_argument('--src_path', type=str, required=True)  # 源数据集路径
+parser.add_argument('--tar_path', type=str, default=None)  # 目标数据集路径，只有在 adapter_only 时需要
+parser.add_argument("-logger", action='store_true')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -72,20 +77,23 @@ def main():
     args = parser.parse_args()
     set_seed()
 
-    logger = wandb.init(
-    # Set the wandb entity where your project will be logged (generally your team name).
-    # Set the wandb project where this run will be logged.
-    project="smh_detection_finetune",
-    # Track hyperparameters and run metadata.
-    config={
-        "learning_rate": 0.01,
-        "architecture": "Resnet50",
-        "dataset": "Smhdata",
-        "epochs": 10,
-        
-    },
-    name = generate_name(args),
-    )   
+    if args.logger:
+        logger = wandb.init(
+        # Set the wandb entity where your project will be logged (generally your team name).
+        # Set the wandb project where this run will be logged.
+        project="smh_detection_finetune",
+        # Track hyperparameters and run metadata.
+        config={
+            "learning_rate": 0.01,
+            "architecture": "Resnet50",
+            "dataset": "Smhdata",
+            "epochs": 10,
+            
+        },
+        name = generate_name(args),
+        )   
+    else:
+        logger = None
 
     epochs = args.epoch
     # 数据增强与预处理
@@ -98,8 +106,8 @@ def main():
     # 加载数据集
     srcdataset, tardataset = None, None  # 先初始化为 None
 
-    src_path = '/home/shared_data/salmonella_detection/OriginalData/AmericanData'
-    tar_path = '/home/shared_data/salmonella_detection/OriginalData/AmericanData'
+    src_path = args.src_path #'/home/shared_data/salmonella_detection/OriginalData/AmericanData'
+    tar_path = args.tar_path #'/home/shared_data/salmonella_detection/OriginalData/AmericanData'
     generator = torch.Generator().manual_seed(42)
 
     if os.path.exists(src_path):
@@ -108,13 +116,16 @@ def main():
         # print("Mean:", mean)                #Mean: tensor([0.5586, 0.5077, 0.4405])
         # print("Std:", std)                  #Std: tensor([0.1756, 0.1774, 0.1781])
         transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.2),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
+        transforms.Resize((224,224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],  # ResNet 预训练所用的均值方差
                             std=[0.1387, 0.1396, 0.1512])
                             ])
         srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
-        train_size = int(0.9 * len(srcdataset))
+        train_size = int(0.8 * len(srcdataset))
         val_size = len(srcdataset) - train_size
         train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
         train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
@@ -122,16 +133,17 @@ def main():
     else:
         raise FileNotFoundError(f"Path does not exist: {src_path}")
 
-    if os.path.exists(tar_path):
-        tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
-        ft_size = int(0.7 * len(tardataset))
-        ft_val_size = len(tardataset) - ft_size
-        ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
-        ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
-        ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
+    if hasattr(args,"finetune") and args.finetune is True:
+        if os.path.exists(tar_path):
+            tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
+            ft_size = int(0.7 * len(tardataset))
+            ft_val_size = len(tardataset) - ft_size
+            ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
+            ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
+            ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
 
-    else:
-        raise FileNotFoundError(f"Path does not exist: {tar_path}")
+        else:
+            raise FileNotFoundError(f"Path does not exist: {tar_path}")
     print("类别映射:", srcdataset.class_to_idx)
 
 
@@ -150,43 +162,39 @@ def main():
 
     save_dir = "checkpoints"
     checkpoint_record = os.path.join(save_dir, "last_checkpoint.txt")
-
-    if not os.path.exists(checkpoint_record) or (hasattr(args, 'resume') and args.resume is not True):
-        print("checkpoint does not exist")
-        optimizer = optim.SGD(model.parameters(),
-                            lr=0.01,                 # 初始学习率
-                            momentum=0.9,          # 动量
-                            weight_decay=5e-4)     # L2 正则
-
-        # Cosine decay 调度器
-        scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
-        training = trainer.Trainer(model, train_loader, val_loader, device, optimizer, scheduler,logger=logger)
-        training.train(epochs)
-
- 
-    print("checkpoint exist")
-    with open(checkpoint_record, "r") as f:
-        checkpoint_path = f.read().strip()
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    ft_epochs = args.fine_epoch
-    print(f"model loaded from {checkpoint_path}")
+    if hasattr(args, 'resume') and args.resume is True:
+        if  os.path.exists(checkpoint_record): 
+            print("checkpoint exist")
+            with open(checkpoint_record, "r") as f:
+                checkpoint_path = f.read().strip()
+            checkpoint = torch.load(checkpoint_path, map_location=device)
+            model.load_state_dict(checkpoint["model_state_dict"])
+            ft_epochs = args.fine_epoch
+            print(f"model loaded from {checkpoint_path}")
+        else:
+            raise FileNotFoundError(f"checkpoint does not exist")
     # criterion = nn.CrossEntropyLoss()
 
     if hasattr(args, 'position') and args.position is not None:
         check_freez_block_res50(model,args.position[0]) # freeze the conv layer not bn layer
         check_active_block_res50(model,args.position[0]+1) # unfreeze the rest block
-    optimizer_ft = optim.SGD(model.parameters(),
-                        lr=1e-3,                 # 初始学习率
-                        momentum=0.9,          # 动量
-                        weight_decay=5e-4)     # L2 正则
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler)
+    training.train(epochs)
+
+
+    
+    if hasattr(args,'finetune') and args.finetune is True:
+        optimizer_ft = optim.SGD(model.parameters(),
+                            lr=1e-3,                 # 初始学习率
+                            momentum=0.9,          # 动量
+                            weight_decay=5e-4)     # L2 正则
 
     # Cosine decay 调度器
-    scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
-    
-
-    fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft,"ft_checkpoints",logger,status='fine tuning')
-    fine_tuning.train(ft_epochs)
+        scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
+        fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft,"ft_checkpoints",logger,status='fine tuning')
+        fine_tuning.train(ft_epochs)
 
 if __name__ == '__main__':
     main()

@@ -24,7 +24,7 @@ def build_dataloaders(src_path, tar_path, batch_size, generator):
         raise FileNotFoundError(f"Source path does not exist: {src_path}")
 
     srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
-    train_size = int(0.9 * len(srcdataset))
+    train_size = int(0.8 * len(srcdataset))
     val_size = len(srcdataset) - train_size
     train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
