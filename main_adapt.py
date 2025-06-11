@@ -2,6 +2,7 @@ import os
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR,CosineAnnealingLR
+from torchvision import models, datasets, transforms
 from trainer import build_dataloaders, Trainer
 from models import build_model
 import wandb
@@ -95,8 +96,8 @@ def main():
         # 源数据集训练基础模型
         train_loader, val_loader, _, _ = build_dataloaders(src_path, None, batch_size, generator)
 
-    model = build_model(model_name='resnet50', pretrained=True,num_classes=2,tuning_method=args.tuning_method,args=args)
-    # model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
+    model =  models.resnet50(pretrained=True) #build_model(model_name='resnet50', pretrained=True,num_classes=2,tuning_method=args.tuning_method,args=args)
+    model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
 
     # optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
