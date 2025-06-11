@@ -102,7 +102,7 @@ def main():
 
     # optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
     optimizer = optim.SGD(
-        model,# filter(lambda p: p.requires_grad, model.parameters()),
+        model.parameters(),# filter(lambda p: p.requires_grad, model.parameters()),
         lr=lr,
         momentum=0.9,
         weight_decay=1e-4,
