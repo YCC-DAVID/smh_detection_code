@@ -4,7 +4,7 @@ from torchvision import models, datasets, transforms
 from torch.utils.data import DataLoader,random_split
 import torch.optim as optim
 import trainer
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR,CosineAnnealingWarmRestarts
 import numpy as np
 import random
 import os
@@ -14,28 +14,31 @@ import argparse
 from compute_norm import compute_mean_std
 from cad_utils import generate_name,get_handle_front,check_active_block_res50,check_freez_block_res50
 
-parser = argparse.ArgumentParser(description='Propert ResNets for CIFAR10 in pytorch')
+parser = argparse.ArgumentParser(description='Propert ResNets for smh_dection in pytorch')
 parser.add_argument('-p', '--position',nargs = '+', default=None, type=int, metavar='N',
                     help='The position to freeze')
-# parser.add_argument('-cmp', '--compression', action='store_true',
-#                     help='if compress the activation')
 parser.add_argument('-resume', '--resume', action='store_true',
                     help='if exist checkpoint will be use')
-parser.add_argument('-ft', '--finetune', action='store_true',
-                    help='if exist checkpoint will be use')
-# parser.add_argument('-drp', '--drop', nargs = '+', default=None, type=int, metavar='N',
-#                     help='if drop the previous layer')
-# parser.add_argument('-tol', '--tolerance', nargs = '+', default=1e-3, type=float, metavar='N',
-#                     help='the decompression tolerance')
-# parser.add_argument('-fzepo', '--freez_epoch', nargs = '+',type=int, metavar='N',
-#                     help='number of total epochs to run')
 parser.add_argument('-epo', '--epoch',default=100, type=int, metavar='N',
                     help='number of total epochs to run')
-parser.add_argument('-ft_epo', '--fine_epoch',default=10, type=int, metavar='N',
+parser.add_argument('--src_path', type=str, required=True,help='Source dataset path')
+parser.add_argument('-lr',type=float,default=1e-4, metavar='N',
+                    help='initial learning rate')
+## finetune
+parser.add_argument('-ft', '--finetune', action='store_true',
+                    help='if exist checkpoint will be use')
+parser.add_argument('-ft_lr', '--ft_lr', default=1e-4, type=float, metavar='N',
+                    help='the learning rate for finetune')
+parser.add_argument('-ft_epo', '--fine_epoch',default=5, type=int, metavar='N',
                     help='number of finetune epochs to run')
-parser.add_argument('--src_path', type=str, required=True)  # 源数据集路径
-parser.add_argument('--tar_path', type=str, default=None)  # 目标数据集路径，只有在 adapter_only 时需要
+parser.add_argument('-ft_p', '--finetune_position',nargs = '+', default=None, type=int, metavar='N',
+                    help='The position to freeze')
+parser.add_argument('--tar_path', type=str, default=None, help='Target dataset path, only needed for finetuning')
+
+# 记录日志
 parser.add_argument("-logger", action='store_true')
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -178,16 +181,20 @@ def main():
     if hasattr(args, 'position') and args.position is not None:
         check_freez_block_res50(model,args.position[0]) # freeze the conv layer not bn layer
         check_active_block_res50(model,args.position[0]+1) # unfreeze the rest block
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4,)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2,eta_min=1e-6)
     training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler,logger=logger)
     training.train(epochs)
 
 
     
     if hasattr(args,'finetune') and args.finetune is True:
+        if hasattr(args,'finetune_position') and args.finetune_position is not None:
+            check_freez_block_res50(model,args.finetune_position[0])
+            check_active_block_res50(model,args.finetune_position[0]+1)
         optimizer_ft = optim.SGD(model.parameters(),
-                            lr=1e-3,                 # 初始学习率
+                            lr=args.ft_lr,                 # 初始学习率
                             momentum=0.9,          # 动量
                             weight_decay=5e-4)     # L2 正则
 
