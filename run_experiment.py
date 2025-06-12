@@ -7,10 +7,10 @@ def run_task(param):
     print(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
 
 
-params = ["-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 4 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft",
-          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 3 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft",
-          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 2 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft",
-          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 1 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft",
+params = ["-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 4 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 3 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 2 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 1 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
          ]
 
 params2 = [
