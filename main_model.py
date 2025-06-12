@@ -196,7 +196,7 @@ def main():
         optimizer_ft = optim.SGD(model.parameters(),
                             lr=args.ft_lr,                 # 初始学习率
                             momentum=0.9,          # 动量
-                            weight_decay=5e-4)     # L2 正则
+                            weight_decay=1e-4)     # L2 正则
 
     # Cosine decay 调度器
         scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
