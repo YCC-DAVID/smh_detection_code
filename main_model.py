@@ -180,7 +180,7 @@ def main():
         check_active_block_res50(model,args.position[0]+1) # unfreeze the rest block
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-    training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler)
+    training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler,logger=logger)
     training.train(epochs)
 
 
