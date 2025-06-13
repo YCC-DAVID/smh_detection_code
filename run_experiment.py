@@ -11,6 +11,8 @@ params = ["-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedDa
           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 3 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 2 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 1 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger -p 0 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug -logger --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
          ]
 
 params2 = [

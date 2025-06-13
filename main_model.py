@@ -182,8 +182,8 @@ def main():
         check_freez_block_res50(model,args.position[0]) # freeze the conv layer not bn layer
         check_active_block_res50(model,args.position[0]+1) # unfreeze the rest block
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4,)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2,eta_min=1e-6)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs,eta_min=1e-6)
+    # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2,eta_min=1e-6)
     training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler,logger=logger)
     training.train(epochs)
 
@@ -197,6 +197,7 @@ def main():
                             lr=args.ft_lr,                 # 初始学习率
                             momentum=0.9,          # 动量
                             weight_decay=1e-4)     # L2 正则
+        ft_epochs = args.fine_epoch
 
     # Cosine decay 调度器
         scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
