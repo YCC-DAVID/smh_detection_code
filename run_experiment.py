@@ -21,6 +21,10 @@ params2 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalDa
            "-epo 80 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
            "-epo 90 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
            "-epo 100 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 2e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 3e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 4e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 5e-5",
           ]
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
