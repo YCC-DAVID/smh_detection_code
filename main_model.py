@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models, datasets, transforms
-from torch.utils.data import DataLoader,random_split
+from torch.utils.data import DataLoader,random_split,ConcatDataset
 import torch.optim as optim
 import trainer
 from torch.optim.lr_scheduler import CosineAnnealingLR,CosineAnnealingWarmRestarts
@@ -12,7 +12,7 @@ import wandb
 import glob
 import argparse
 from compute_norm import compute_mean_std
-from cad_utils import generate_name,get_handle_front,check_active_block_res50,check_freez_block_res50
+from cad_utils import generate_name,get_handle_front,check_active_block_res50,check_freez_block_res50,UnifiedImageFolderDataset
 
 parser = argparse.ArgumentParser(description='Propert ResNets for smh_dection in pytorch')
 parser.add_argument('-p', '--position',nargs = '+', default=None, type=int, metavar='N',
@@ -27,7 +27,7 @@ parser.add_argument('-lr',type=float,default=1e-4, metavar='N',
 ## finetune
 parser.add_argument('-ft', '--finetune', action='store_true',
                     help='if exist checkpoint will be use')
-parser.add_argument('-ft_lr', '--ft_lr', default=1e-4, type=float, metavar='N',
+parser.add_argument('-ft_lr', '--ft_lr', default=1e-5, type=float, metavar='N',
                     help='the learning rate for finetune')
 parser.add_argument('-ft_epo', '--fine_epoch',default=5, type=int, metavar='N',
                     help='number of finetune epochs to run')
@@ -35,11 +35,14 @@ parser.add_argument('-ft_p', '--finetune_position',nargs = '+', default=None, ty
                     help='The position to freeze')
 parser.add_argument('--tar_path', type=str, default=None, help='Target dataset path, only needed for finetuning')
 
+
+parser.add_argument('-comb_ds', '--combine_dataset',action='store_true', help='if Combine source and target dataset')
+
 # 记录日志
 parser.add_argument("-logger", action='store_true')
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 
 
 
@@ -147,6 +150,29 @@ def main():
 
         else:
             raise FileNotFoundError(f"Path does not exist: {tar_path}")
+    if hasattr(args, 'combine_dataset') and args.combine_dataset is True:
+        if os.path.exists(tar_path):
+
+            
+            # 合并源数据集和目标数据集
+            # 读取 srcdataset 先统一类别
+            srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
+            # shared_class_to_idx = srcdataset.class_to_idx
+
+            # # 用相同的 class_to_idx 加载目标集
+            tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
+            # tardataset.class_to_idx = shared_class_to_idx
+            combined_dataset = UnifiedImageFolderDataset(src_dataset=srcdataset,tar_dataset=tardataset,transform=transform)
+
+            # tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
+            # combined_dataset = ConcatDataset([srcdataset, tardataset])
+            train_size = int(0.8 * len(combined_dataset))
+            val_size = len(combined_dataset) - train_size
+            combined_train_dataset, combined_val_dataset = random_split(combined_dataset, [train_size, val_size], generator=generator)
+            train_loader = DataLoader(combined_train_dataset, batch_size=32, shuffle=True, num_workers=0)
+            val_loader = DataLoader(combined_val_dataset, batch_size=32, shuffle=False, num_workers=0)
+        else:
+            print("Target dataset is not provided for combining.")
     print("类别映射:", srcdataset.class_to_idx)
 
 

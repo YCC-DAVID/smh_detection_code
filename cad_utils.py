@@ -9,6 +9,9 @@ import wandb
 import copy
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import Dataset
+from torchvision.datasets import ImageFolder
+from PIL import Image
 
 subdir = f'Cmp4Train_exp/pytorch_resnet_cifar10/'
 np_dir='./npdata/'
@@ -990,3 +993,35 @@ def choose_saved_token(activation, ratio):
 
     return least_similar_combined_indices, least_similar_values
     
+
+class UnifiedImageFolderDataset(Dataset):
+    def __init__(self, src_dataset: ImageFolder, tar_dataset: ImageFolder, transform=None):
+        self.transform = transform
+
+        # 收集所有类别名
+        all_classes = sorted(set(src_dataset.classes + tar_dataset.classes))
+        self.class_to_idx = {cls_name: i for i, cls_name in enumerate(all_classes)}
+
+        self.samples = []
+
+        # 重新映射 source 样本
+        for path, label in src_dataset.samples:
+            class_name = src_dataset.classes[label]
+            unified_label = self.class_to_idx[class_name]
+            self.samples.append((path, unified_label))
+
+        # 重新映射 target 样本
+        for path, label in tar_dataset.samples:
+            class_name = tar_dataset.classes[label]
+            unified_label = self.class_to_idx[class_name]
+            self.samples.append((path, unified_label))
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        path, label = self.samples[idx]
+        image = Image.open(path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return image, label
