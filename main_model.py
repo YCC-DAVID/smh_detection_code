@@ -11,6 +11,7 @@ import os
 import wandb
 import glob
 import argparse
+from datetime import datetime
 from compute_norm import compute_mean_std
 from cad_utils import generate_name,get_handle_front,check_active_block_res50,check_freez_block_res50,UnifiedImageFolderDataset
 
@@ -79,9 +80,29 @@ def load_checkpoint(model, optimizer, scheduler, device, save_dir):
     return model, optimizer, scheduler, start_epoch
 
 
+
+def setup_paths(args):
+    exp_name = generate_name(args)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    full_name = f"{exp_name}_{timestamp}"
+
+    base_dirs = {
+        # "log_dir": os.path.join("logs", full_name),
+        "ckpt_dir": os.path.join("checkpoints", full_name),
+        # "result_dir": os.path.join("results", full_name),
+    }
+
+    for path in base_dirs.values():
+        os.makedirs(path, exist_ok=True)
+
+    return full_name, base_dirs
+
+
+
 def main():
     args = parser.parse_args()
     set_seed()
+    exp_name, paths = setup_paths(args)
 
     if args.logger:
         logger = wandb.init(
@@ -89,14 +110,8 @@ def main():
         # Set the wandb project where this run will be logged.
         project="smh_detection_finetune",
         # Track hyperparameters and run metadata.
-        config={
-            "learning_rate": 0.01,
-            "architecture": "Resnet50",
-            "dataset": "Smhdata",
-            "epochs": 10,
-            
-        },
-        name = generate_name(args),
+        config=vars(args),
+        name = exp_name,
         )   
     else:
         logger = None
@@ -210,7 +225,7 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4,)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs,eta_min=1e-6)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2,eta_min=1e-6)
-    training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler,logger=logger)
+    training = trainer.Trainer(model,train_loader,val_loader,device,optimizer,scheduler,logger=logger,save_dir=paths['ckpt_dir'],status='training')
     training.train(epochs)
 
 
@@ -227,7 +242,7 @@ def main():
 
     # Cosine decay 调度器
         scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
-        fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft,"ft_checkpoints",logger,status='fine tuning')
+        fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft,  logger,status='fine_tuning',save_dir=paths['ckpt_dir'])
         fine_tuning.train(ft_epochs)
 
 if __name__ == '__main__':

@@ -110,18 +110,32 @@ class Trainer:
     def save_model(self, epoch, is_best=False):
         time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    # 决定文件名：最佳模型 or 普通 epoch 模型
-        filename = f"best_model_{time_str}.pth" if is_best else f"epoch_{epoch+1}_{time_str}.pth"
-        path = os.path.join(self.save_dir, filename)
+        # 在文件名前加上 status（如 training, finetune）
+        status_prefix = f"{self.status}_"
+
+        # 文件名选择
+        if is_best:
+            filename = f"{status_prefix}best_model_{time_str}.pth"
+        else:
+            filename = f"{status_prefix}epoch_{epoch+1:03d}_{time_str}.pth"
+
+        save_path = os.path.join(self.save_dir, filename)
+
+        # 保存 checkpoint
         torch.save({
             'epoch': epoch + 1,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-        }, path)
-        with open(os.path.join(self.save_dir, "last_checkpoint.txt"), "w") as f:
-            f.write(path)
+            'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler else None,
+        }, save_path)
 
+        # 记录为最近 checkpoint
+        with open(os.path.join(self.save_dir, "last_checkpoint.txt"), "w") as f:
+            f.write(save_path)
+
+        print(f"{'[BEST]' if is_best else ' [SAVE]'} Checkpoint saved: {save_path}")
+
+        
     def train(self, epochs):
         for epoch in range(epochs):
             train_loss, train_acc = self.train_one_epoch()

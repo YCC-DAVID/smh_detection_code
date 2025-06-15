@@ -28,38 +28,89 @@ commu_cost = [[],[]]
 weight_dict = {}
 weight_val_dict = {}
 
+# def generate_name(args):
+#     parts = [f"epo_{args.epoch}"]
+
+#     # 冻结层位置信息
+#     if args.position:
+#         pos_str = "_".join(map(str, args.position))
+#         parts.append(f"fz_p_{pos_str}")
+
+#     # finetune 相关
+#     if args.finetune:
+#         parts.append("ft")
+#         if args.finetune_position:
+#             ft_pos_str = "_".join(map(str, args.finetune_position))
+#             parts.append(f"ft_p_{ft_pos_str}")
+#         parts.append(f"ft_epo_{args.fine_epoch}")
+#         parts.append(f"ft_lr_{args.ft_lr}")
+
+#     # combine dataset
+#     if args.combine_dataset:
+#         parts.append("comb_ds")
+
+#     # source / target path（只截取最后一级目录）
+#     if args.src_path:
+#         parts.append(f"src_{os.path.basename(args.src_path)}")
+#     if args.tar_path:
+#         parts.append(f"tar_{os.path.basename(args.tar_path)}")
+
+#     # resume
+#     if args.resume:
+#         parts.append("resume")
+
+#     # logger
+#     if args.logger:
+#         parts.append("log")
+
+#     # 可选扩展字段
+#     if hasattr(args, 'drop') and args.drop:
+#         parts.append(f"drp_{args.drop}")
+#         if getattr(args, 'tolerance', None):
+#             parts.append(f"tol_{args.tolerance}")
+#         if getattr(args, 'gamma', None):
+#             parts.append(f"gma_{args.gamma}")
+#         if getattr(args, 'metric', None):
+#             parts.append(f"m_{args.metric}")
+
+#     if getattr(args, 'forward_hook', False):
+#         parts.append("fhook")
+
+#     if getattr(args, 'learning_model', None):
+#         parts.append(f"lm_{args.learning_model}")
+
+#     # 最终拼接
+#     return "_".join(parts)
+
+
 def generate_name(args):
-    name = f'epo_{args.epoch}'
+    skip_keys = {
+        'src_path', 'tar_path', 'logger',  # 路径和日志参数可以排除
+        'position', 'finetune_position'   # 特殊处理列表
+    }
 
-    if hasattr(args, 'position') and args.position:
-        # name += '_fz_p'
-        name += f'_fz_p_{args.position}'
+    name_parts = [f"epo_{args.epoch}"]
 
-    if hasattr(args, 'drop') and args.drop:
-        # name += '_drp'
-        name += f'_drp_{args.drop}'
-        if hasattr(args, 'tolerance') and args.tolerance:
-               name += f'_tol_{args.tolerance}'
-        if hasattr(args, 'gamma') and args.gamma:
-               name += f'_gma_{args.gamma}'
-        if hasattr(args, 'metric') and args.metric:
-               name += f'_m_{args.metric}'
+    # 手动处理列表参数
+    if args.position:
+        pos_str = "_".join(map(str, args.position))
+        name_parts.append(f"fz_p_{pos_str}")
 
-    if hasattr(args, 'forward_hook') and args.forward_hook:
-        name += '_fhook'
+    if getattr(args, 'finetune', False) and args.finetune_position:
+        ft_pos_str = "_".join(map(str, args.finetune_position))
+        name_parts.append(f"ft_p_{ft_pos_str}")
 
-    if hasattr(args, 'fine_epoch') and args.fine_epoch:
-        # name += '_fz_epo'
-        name += f'_ft_epo_{args.fine_epoch}'
+    # 自动添加其余所有参数
+    for key, val in vars(args).items():
+        if key in skip_keys or val in [None, False]:
+            continue
+        if isinstance(val, bool) and val:  # True 的 flag 参数
+            name_parts.append(key)
+        elif not isinstance(val, (list, dict)):
+            name_parts.append(f"{key}_{val}")
 
-    if hasattr(args, 'resume') and args.resume:
-        name += f'_res_{args.resume}'
-        if hasattr(args, 'tolerance') and args.tolerance:
-            name += f'_tol_{args.tolerance}'
+    return "_".join(name_parts)
 
-    if hasattr(args, 'learning_model') and args.learning_model:
-            name += f'_lm_{args.learning_model}'         
-    return name
 
 
 def visual_data(imgs,name):
