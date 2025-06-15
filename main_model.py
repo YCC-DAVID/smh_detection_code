@@ -46,7 +46,7 @@ parser.add_argument('-comb_ds', '--combine_dataset',action='store_true', help='i
 parser.add_argument("-logger", action='store_true')
 
 
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
