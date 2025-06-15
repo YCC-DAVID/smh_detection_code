@@ -11,6 +11,7 @@ import os
 import wandb
 import glob
 import argparse
+import multiprocessing
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from compute_norm import compute_mean_std
@@ -102,6 +103,12 @@ def setup_paths(args):
 
     return full_name, base_dirs
 
+def get_num_workers():
+    try:
+        return min(8, multiprocessing.cpu_count())
+    except:
+        return 0
+
 
 
 def main():
@@ -154,8 +161,8 @@ def main():
         train_size = int(0.8 * len(srcdataset))
         val_size = len(srcdataset) - train_size
         train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
-        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
-        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=get_num_workers())
+        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=get_num_workers())
     else:
         raise FileNotFoundError(f"Path does not exist: {src_path}")
 
@@ -165,8 +172,8 @@ def main():
             ft_size = int(0.7 * len(tardataset))
             ft_val_size = len(tardataset) - ft_size
             ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
-            ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
-            ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
+            ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=get_num_workers())
+            ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=get_num_workers())
 
         else:
             raise FileNotFoundError(f"Path does not exist: {tar_path}")
@@ -189,8 +196,8 @@ def main():
             train_size = int(0.8 * len(combined_dataset))
             val_size = len(combined_dataset) - train_size
             combined_train_dataset, combined_val_dataset = random_split(combined_dataset, [train_size, val_size], generator=generator)
-            train_loader = DataLoader(combined_train_dataset, batch_size=32, shuffle=True, num_workers=0)
-            val_loader = DataLoader(combined_val_dataset, batch_size=32, shuffle=False, num_workers=0)
+            train_loader = DataLoader(combined_train_dataset, batch_size=32, shuffle=True, num_workers=get_num_workers())
+            val_loader = DataLoader(combined_val_dataset, batch_size=32, shuffle=False, num_workers=get_num_workers())
         else:
             print("Target dataset is not provided for combining.")
     print("类别映射:", srcdataset.class_to_idx)
