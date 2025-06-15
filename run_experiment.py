@@ -29,13 +29,14 @@ params2 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalDa
            "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -lr 8e-6",
            "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -lr 9e-6",
         ]
-params3 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-4",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 5e-5",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 2e-5",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-5",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 5e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 2e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-6",
+params3 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-4",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 5e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 2e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 5e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 2e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-6",
+           
         ]
 
 param_groups = [params, params1, params2, params3]
