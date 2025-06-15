@@ -1,40 +1,72 @@
-import concurrent.futures
 import os
-
-def run_task(param):
-    print(f"Running task with {param}")
-    os.system(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
-    print(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
+import subprocess
+import time
+from multiprocessing import Process
 
 
-# params = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData -logger -comb_ds -p 4 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
-#           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData -logger -comb_ds -p 3 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
-#           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData -logger -comb_ds -p 2 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
-#           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData -logger -comb_ds -p 1 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
-#           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData -logger -comb_ds -p 0 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
-#           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData -logger -comb_ds --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -ft -ft_p 4",
-#          ]
+# def run_task(param):
+#     print(f"Running task with {param}")
+#     os.system(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
+#     print(f"python /home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py {param}")
 
-params2 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-6",
-        #    "-epo 60 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
-        #    "-epo 70 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
-        #    "-epo 80 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
-        #    "-epo 90 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
-        #    "-epo 100 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 1e-5",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 2e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 3e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 4e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 5e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 6e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 7e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 8e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData -logger -lr 9e-6",
+
+params  = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfrican -logger -comb_ds -p 4 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAmerican -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfrican -logger -comb_ds -p 3 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAmerican -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfrican -logger -comb_ds -p 2 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAmerican -ft -ft_p 4",]
+
+params1 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfrican -logger -comb_ds -p 1 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAmerican -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfrican -logger -comb_ds -p 0 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAmerican -ft -ft_p 4",
+          "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfrican -logger -comb_ds --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAmerican -ft -ft_p 4",
+         ]
+
+params2 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 1e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 2e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 3e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 4e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 5e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 6e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 7e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 8e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAmerican -logger -lr 9e-6",
+        ]
+params3 = ["-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 1e-4",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 5e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 2e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 1e-5",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 5e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 2e-6",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/AugumentdData/AmericanData --src_name AugAmerican -logger -lr 1e-6",
         ]
 
-# with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-#     executor.map(run_task, params)
+param_groups = [params, params1, params2, params3]
+gpu_assignments = {
+    1: [params, params1],  # GPU 0 执行前两组
+    3: [params2, params3]  # GPU 1 执行后两组
+}
 
-# print("First stage tasks are done.")
+script = "/home/chence/workspace/shm_detection/freezing/smh_detection_code/main_model.py"
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-    executor.map(run_task, params2)
+def run_param_group(param_group, gpu_id, group_id):
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    for idx, param_str in enumerate(param_group):
+        cmd = f"python {script} {param_str}"
+        print(f"[GPU {gpu_id}] Group {group_id} Experiment {idx} ➤ {cmd}")
+        log_name = f"log_gpu{gpu_id}_group{group_id}_exp{idx}.txt"
+        with open(log_name, "w") as log_file:
+            subprocess.run(cmd, shell=True, stdout=log_file, stderr=subprocess.STDOUT)
+        time.sleep(1)
+
+def run_all():
+    processes = []
+    for gpu_id, groups in gpu_assignments.items():
+        for i, group in enumerate(groups):
+            group_id = f"{gpu_id}_{i}"  # 标识是第几组
+            p = Process(target=run_param_group, args=(group, gpu_id, group_id))
+            p.start()
+            processes.append(p)
+
+    for p in processes:
+        p.join()
+
+if __name__ == "__main__":
+    run_all()

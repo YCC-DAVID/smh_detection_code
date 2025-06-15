@@ -23,6 +23,8 @@ parser.add_argument('-resume', '--resume', action='store_true',
 parser.add_argument('-epo', '--epoch',default=100, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--src_path', type=str, required=True,help='Source dataset path')
+parser.add_argument('--src_name', type=str, default=None,help='Source dataset abbreviation name')
+
 parser.add_argument('-lr',type=float,default=1e-4, metavar='N',
                     help='initial learning rate')
 ## finetune
@@ -35,6 +37,7 @@ parser.add_argument('-ft_epo', '--fine_epoch',default=5, type=int, metavar='N',
 parser.add_argument('-ft_p', '--finetune_position',nargs = '+', default=None, type=int, metavar='N',
                     help='The position to freeze')
 parser.add_argument('--tar_path', type=str, default=None, help='Target dataset path, only needed for finetuning')
+parser.add_argument('--tar_name', type=str, default=None,help='Target dataset abbreviation name')
 
 
 parser.add_argument('-comb_ds', '--combine_dataset',action='store_true', help='if Combine source and target dataset')
