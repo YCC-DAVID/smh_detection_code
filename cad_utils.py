@@ -86,7 +86,18 @@ weight_val_dict = {}
 def generate_name(args):
     skip_keys = {
         'src_path', 'tar_path', 'logger',  # 路径和日志参数可以排除
-        'position', 'finetune_position'   # 特殊处理列表
+        'position', 'finetune_position', 'epoch'   # 特殊处理列表
+    }
+    param_alias = {
+        "fine_epoch": "ftep",
+        "ft_lr": "ftlr",
+        "lr": "lr",
+        "src_name": "srcN",
+        "tar_name": "tarN",
+        "combine_dataset": "comb",
+        "position": "fzp",
+        "finetune_position": "ftp",
+        "epoch": "epo",
     }
 
     name_parts = [f"epo_{args.epoch}"]
@@ -94,20 +105,22 @@ def generate_name(args):
     # 手动处理列表参数
     if args.position:
         pos_str = "_".join(map(str, args.position))
-        name_parts.append(f"fz_p_{pos_str}")
+        name_parts.append(f"fzp_{pos_str}")
 
     if getattr(args, 'finetune', False) and args.finetune_position:
         ft_pos_str = "_".join(map(str, args.finetune_position))
-        name_parts.append(f"ft_p_{ft_pos_str}")
+        name_parts.append(f"ftp_{ft_pos_str}")
 
     # 自动添加其余所有参数
     for key, val in vars(args).items():
         if key in skip_keys or val in [None, False]:
             continue
-        if isinstance(val, bool) and val:  # True 的 flag 参数
-            name_parts.append(key)
+        short_key = param_alias.get(key, key)  # 使用缩写或原名
+
+        if isinstance(val, bool) and val:
+            name_parts.append(short_key)
         elif not isinstance(val, (list, dict)):
-            name_parts.append(f"{key}_{val}")
+            name_parts.append(f"{short_key}{val}")
 
     return "_".join(name_parts)
 

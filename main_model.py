@@ -12,6 +12,7 @@ import wandb
 import glob
 import argparse
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from compute_norm import compute_mean_std
 from cad_utils import generate_name,get_handle_front,check_active_block_res50,check_freez_block_res50,UnifiedImageFolderDataset
 
@@ -86,6 +87,7 @@ def load_checkpoint(model, optimizer, scheduler, device, save_dir):
 
 def setup_paths(args):
     exp_name = generate_name(args)
+    now_est = datetime.now(ZoneInfo("America/New_York"))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     full_name = f"{exp_name}_{timestamp}"
 
@@ -111,7 +113,7 @@ def main():
         logger = wandb.init(
         # Set the wandb entity where your project will be logged (generally your team name).
         # Set the wandb project where this run will be logged.
-        project="smh_detection_finetune",
+        project="smh_detection_training",
         # Track hyperparameters and run metadata.
         config=vars(args),
         name = exp_name,
