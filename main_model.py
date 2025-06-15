@@ -93,7 +93,7 @@ def setup_paths(args):
 
     base_dirs = {
         # "log_dir": os.path.join("logs", full_name),
-        "ckpt_dir": os.path.join("checkpoints", full_name),
+        "ckpt_dir": os.path.join("checkpoints_new", full_name),
         # "result_dir": os.path.join("results", full_name),
     }
 
