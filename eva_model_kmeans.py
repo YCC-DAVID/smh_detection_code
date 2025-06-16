@@ -58,13 +58,8 @@ def evaluate_model_on_dataset(model_path, dataset_path):
     label_map = label_to_int_map(label_strs)
     true_labels = np.array([label_map[lbl] for lbl in label_strs])
 
-    # 加载模型
+    # 加载模型（这里使用 ImageNet 上预训练的 resnet50 提取特征）
     model = models.resnet50(pretrained=True)
-    # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, 2)  # 二分类
-    # checkpoint = torch.load(model_path, map_location='cpu')
-    # model.load_state_dict(checkpoint['model_state_dict'])
-
     model.eval()
     extractor = get_feature_extractor(model)
 
@@ -76,11 +71,23 @@ def evaluate_model_on_dataset(model_path, dataset_path):
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
     cluster_labels = kmeans.fit_predict(features)
 
-    pred_labels = match_clusters_to_labels(true_labels, cluster_labels)
-
-    # 每类准确率
-    class_acc = {}
+    # 打印每类数据在各聚类下的分布数量
     inv_map = {v: k for k, v in label_map.items()}
+    cluster_distribution = {inv_map[i]: {cid: 0 for cid in range(n_clusters)} for i in range(n_clusters)}
+
+    for t_lbl, c_lbl in zip(true_labels, cluster_labels):
+        class_name = inv_map[t_lbl]
+        cluster_distribution[class_name][c_lbl] += 1
+
+    print("\n=== Cluster Distribution by True Class ===")
+    for class_name, clusters in cluster_distribution.items():
+        print(f"Class '{class_name}':")
+        for cluster_id, count in clusters.items():
+            print(f"  Cluster {cluster_id}: {count} images")
+
+    # 计算每类准确率
+    pred_labels = match_clusters_to_labels(true_labels, cluster_labels)
+    class_acc = {}
     for i in range(n_clusters):
         idx = (true_labels == i)
         acc = np.mean(pred_labels[idx] == true_labels[idx])
