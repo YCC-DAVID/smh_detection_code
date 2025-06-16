@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+import torch.nn as nn
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.metrics import accuracy_score
@@ -59,6 +60,8 @@ def evaluate_model_on_dataset(model_path, dataset_path):
 
     # 加载模型
     model = models.resnet50()
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 2)  # 二分类
     checkpoint = torch.load(model_path, map_location='cpu')
     model.load_state_dict(checkpoint['model_state_dict'])
 
