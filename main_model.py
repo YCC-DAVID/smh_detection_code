@@ -90,7 +90,7 @@ def setup_paths(args):
     exp_name = generate_name(args)
     now_est = datetime.now(ZoneInfo("America/New_York"))
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    full_name = f"{exp_name}_{timestamp}"
+    full_name = f"{exp_name}"
 
     base_dirs = {
         # "log_dir": os.path.join("logs", full_name),
@@ -161,8 +161,8 @@ def main():
         train_size = int(0.8 * len(srcdataset))
         val_size = len(srcdataset) - train_size
         train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
-        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=get_num_workers())
-        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=get_num_workers())
+        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
     else:
         raise FileNotFoundError(f"Path does not exist: {src_path}")
 
@@ -172,8 +172,8 @@ def main():
             ft_size = int(0.7 * len(tardataset))
             ft_val_size = len(tardataset) - ft_size
             ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
-            ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=get_num_workers())
-            ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=get_num_workers())
+            ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
+            ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
 
         else:
             raise FileNotFoundError(f"Path does not exist: {tar_path}")
@@ -196,8 +196,8 @@ def main():
             train_size = int(0.8 * len(combined_dataset))
             val_size = len(combined_dataset) - train_size
             combined_train_dataset, combined_val_dataset = random_split(combined_dataset, [train_size, val_size], generator=generator)
-            train_loader = DataLoader(combined_train_dataset, batch_size=32, shuffle=True, num_workers=get_num_workers())
-            val_loader = DataLoader(combined_val_dataset, batch_size=32, shuffle=False, num_workers=get_num_workers())
+            train_loader = DataLoader(combined_train_dataset, batch_size=32, shuffle=True, num_workers=0)
+            val_loader = DataLoader(combined_val_dataset, batch_size=32, shuffle=False, num_workers=0)
         else:
             print("Target dataset is not provided for combining.")
     print("类别映射:", srcdataset.class_to_idx)
@@ -254,7 +254,7 @@ def main():
 
     # Cosine decay 调度器
         scheduler_ft = CosineAnnealingLR(optimizer_ft, T_max=ft_epochs)
-        fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft,  logger,status='fine_tuning',save_dir=paths['ckpt_dir'])
+        fine_tuning = trainer.Trainer(model, ft_loader, ft_val_loader, device, optimizer_ft, scheduler_ft, save_dir=paths['ckpt_dir'], logger=logger,status='fine_tuning',)
         fine_tuning.train(ft_epochs)
 
 if __name__ == '__main__':
