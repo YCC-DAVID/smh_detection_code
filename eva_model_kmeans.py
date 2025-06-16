@@ -75,7 +75,7 @@ def evaluate_model_on_dataset(model_path, dataset_path,pretrained=False):
         checkpoint = torch.load(model_path, map_location='cpu')
         model.load_state_dict(checkpoint['model_state_dict'])
 
-    model = model.to('cuda' if torch.cuda.is_available() else 'cpu')
+    # model = model.to('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
     extractor = get_feature_extractor(model)
 
