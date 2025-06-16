@@ -59,7 +59,9 @@ def evaluate_model_on_dataset(model_path, dataset_path):
 
     # 加载模型
     model = models.resnet50()
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
+    checkpoint = torch.load(model_path, map_location='cpu')
+    model.load_state_dict(checkpoint['model_state_dict'])
+
     model.eval()
     extractor = get_feature_extractor(model)
 
