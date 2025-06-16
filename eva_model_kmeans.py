@@ -1,5 +1,6 @@
 import os
 import torch
+import argparse
 import numpy as np
 import torch.nn as nn
 from PIL import Image
@@ -7,6 +8,12 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import accuracy_score
 from scipy.stats import mode
 from torchvision import models, transforms
+
+parser = argparse.ArgumentParser(description='evaluate model on dataset with clustering')
+
+parser.add_argument('--dataset_path', type=str, required=True,help='Source dataset path')
+parser.add_argument('--model_path', type=str, required=True, help='Path to the model checkpoint')
+parser.add_argument("-pretrain", action='store_true')
 
 # ------- 图像加载 -------
 def load_images_and_labels(root_folder, transform):
@@ -43,7 +50,7 @@ def get_feature_extractor(model):
     return torch.nn.Sequential(*list(model.children())[:-1])
 
 # ------- 主评估函数 -------
-def evaluate_model_on_dataset(model_path, dataset_path):
+def evaluate_model_on_dataset(model_path, dataset_path,pretrained=False):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor()
@@ -59,7 +66,16 @@ def evaluate_model_on_dataset(model_path, dataset_path):
     true_labels = np.array([label_map[lbl] for lbl in label_strs])
 
     # 加载模型（这里使用 ImageNet 上预训练的 resnet50 提取特征）
-    model = models.resnet50(pretrained=True)
+    if pretrained:
+        model = models.resnet50(pretrained=True)
+    else:
+        model = models.resnet50()
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 2)  # 二分类
+        checkpoint = torch.load(model_path, map_location='cpu')
+        model.load_state_dict(checkpoint['model_state_dict'])
+
+    model = model.to('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
     extractor = get_feature_extractor(model)
 
@@ -97,8 +113,17 @@ def evaluate_model_on_dataset(model_path, dataset_path):
 
 # ------- 总控制逻辑 -------
 def main():
-    model_path = '/home/chence/workspace/shm_detection/freezing/smh_detection_code/checkpoints_new/epo_50_srcNAugAme_lr0.0001_ftlr1e-05_ftep5_20250615_164727/training_best_model_2025-06-15_19-18-48.pth'
-    dataset_path = '/home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug'
+    args = parser.parse_args()
+    model_path = args.model_path
+    dataset_path = args.dataset_path
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model path does not exist: {model_path}") 
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"Dataset path does not exist: {dataset_path}")
+    if args.pretrain:
+        print("Using pretrained model as baseline.")
+    # model_path = '/home/chence/workspace/shm_detection/freezing/smh_detection_code/checkpoints_new/epo_50_srcNAugAme_lr0.0001_ftlr1e-05_ftep5_20250615_164727/training_best_model_2025-06-15_19-18-48.pth'
+    # dataset_path = '/home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug'
 
     # with open(model_info_path, 'r') as f:
     #     lines = f.read().strip().splitlines()
@@ -111,7 +136,8 @@ def main():
         # for dataset_name in dataset_names:
         #     dataset_path = os.path.join(dataset_root, dataset_name)
         #     print(f" Dataset: {dataset_name}")
-    acc = evaluate_model_on_dataset(model_path, dataset_path)
+    acc = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
+    print("\n=== Evaluation Results ===")
     if acc is not None:
         for cls, a in acc.items():
             print(f"Class '{cls}' Accuracy: {a:.4f}")
