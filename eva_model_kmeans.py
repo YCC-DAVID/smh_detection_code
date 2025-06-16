@@ -85,7 +85,7 @@ def evaluate_model_on_dataset(model_path, dataset_path):
 
 # ------- 总控制逻辑 -------
 def main():
-    model_path = '/workspace/shm_detection/freezing/smh_detection_code/checkpoints_new/epo_50_srcNAugAme_lr0.0001_ftlr1e-05_ftep5_20250615_164727/training_best_model_2025-06-15_19-18-48.pth'
+    model_path = '/home/chence/workspace/shm_detection/freezing/smh_detection_code/checkpoints_new/epo_50_srcNAugAme_lr0.0001_ftlr1e-05_ftep5_20250615_164727/training_best_model_2025-06-15_19-18-48.pth'
     dataset_path = '/home/shared_data/salmonella_detection/OriginalData/AmericanData'
 
     # with open(model_info_path, 'r') as f:
