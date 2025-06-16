@@ -59,11 +59,11 @@ def evaluate_model_on_dataset(model_path, dataset_path):
     true_labels = np.array([label_map[lbl] for lbl in label_strs])
 
     # 加载模型
-    model = models.resnet50()
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)  # 二分类
-    checkpoint = torch.load(model_path, map_location='cpu')
-    model.load_state_dict(checkpoint['model_state_dict'])
+    model = models.resnet50(pretrained=True)
+    # num_ftrs = model.fc.in_features
+    # model.fc = nn.Linear(num_ftrs, 2)  # 二分类
+    # checkpoint = torch.load(model_path, map_location='cpu')
+    # model.load_state_dict(checkpoint['model_state_dict'])
 
     model.eval()
     extractor = get_feature_extractor(model)
