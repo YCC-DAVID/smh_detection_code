@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 import torch.nn as nn
 from PIL import Image
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans,DBSCAN
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from scipy.stats import mode
@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(description='evaluate model on dataset with clu
 parser.add_argument('--dataset_path', type=str, required = True,help='Source dataset path')
 parser.add_argument('--model_path', type=str, default = None, help='Path to the model checkpoint')
 parser.add_argument("-pretrain", action='store_true')
+parser.add_argument("-cls_mth","--cluster_method", type=str, default='kmeans')
 
 
 def list_experiments_with_models(root_dir="checkpoints_new"):
