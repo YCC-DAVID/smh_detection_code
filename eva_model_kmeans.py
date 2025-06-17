@@ -1,19 +1,81 @@
 import os
+import re
 import torch
 import argparse
+from datetime import datetime
 import numpy as np
 import torch.nn as nn
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from scipy.stats import mode
 from torchvision import models, transforms
 
 parser = argparse.ArgumentParser(description='evaluate model on dataset with clustering')
 
-parser.add_argument('--dataset_path', type=str, required=True,help='Source dataset path')
-parser.add_argument('--model_path', type=str, required=True, help='Path to the model checkpoint')
+parser.add_argument('--dataset_path', type=str, required = True,help='Source dataset path')
+parser.add_argument('--model_path', type=str, default = None, help='Path to the model checkpoint')
 parser.add_argument("-pretrain", action='store_true')
+
+
+def list_experiments_with_models(root_dir="checkpoints_new"):
+    """
+    返回包含至少一个 training_best_model_*.pth 文件的实验目录名列表。
+    """
+    pattern = re.compile(r'training_best_model_(\d{4}_\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
+    valid_experiments = []
+
+    for name in os.listdir(root_dir):
+        exp_dir = os.path.join(root_dir, name)
+        if not os.path.isdir(exp_dir):
+            continue
+
+        # 检查是否含有匹配模型文件
+        has_model = any(pattern.match(f) for f in os.listdir(exp_dir))
+        if has_model:
+            valid_experiments.append(name)
+
+    return valid_experiments
+
+
+# 2. 获取某个实验中时间戳最新的模型路径
+def find_latest_model_in_experiment(exp_dir):
+    """
+    给定一个实验路径，返回该实验中时间最新的 best_model 的路径。
+    适用于命名格式：training_best_model_2025_06-16_21-19-59.pth
+    """
+    pattern = re.compile(r'training_best_model_(\d{4}_\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
+    best_models = []
+
+    for filename in os.listdir(exp_dir):
+        match = pattern.match(filename)
+        if match:
+            time_str = match.group(1)
+            try:
+                time = datetime.strptime(time_str, "%Y_%m-%d_%H-%M-%S")
+                full_path = os.path.join(exp_dir, filename)
+                best_models.append((time, full_path))
+            except ValueError:
+                continue
+
+    if not best_models:
+        return None
+    return max(best_models, key=lambda x: x[0])[1]
+
+# 3. 汇总所有实验的最新模型路径
+def find_latest_models_across_experiments(root_dir="checkpoints_new"):
+    """
+    遍历所有实验，返回每个实验中最新的模型路径，形式为字典 {实验名: 最新模型路径}
+    """
+    results = {}
+    for exp_name in list_experiments_with_models(root_dir):
+        exp_dir = os.path.join(root_dir, exp_name)
+        latest_model = find_latest_model_in_experiment(exp_dir)
+        if latest_model:
+            results[exp_name] = latest_model
+    return results
+
 
 # ------- 图像加载 -------
 def load_images_and_labels(root_folder, transform):
@@ -50,7 +112,7 @@ def get_feature_extractor(model):
     return torch.nn.Sequential(*list(model.children())[:-1])
 
 # ------- 主评估函数 -------
-def evaluate_model_on_dataset(model_path, dataset_path,pretrained=False):
+def evaluate_model_on_dataset(model_path, dataset_path,cluster_method,pretrained=False):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor()
@@ -83,9 +145,24 @@ def evaluate_model_on_dataset(model_path, dataset_path,pretrained=False):
         features = extractor(images).squeeze(-1).squeeze(-1).numpy()
 
     # 聚类
-    n_clusters = len(label_map)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-    cluster_labels = kmeans.fit_predict(features)
+    if cluster_method == 'kmeans':
+        n_clusters = len(label_map)
+        cluster_model = KMeans(n_clusters=n_clusters, random_state=0)
+        cluster_labels = cluster_model.fit_predict(features)
+
+    elif cluster_method == 'dbscan':
+        # 你可以根据情况调节 eps/min_samples（或者设成参数传进来）
+        cluster_model = DBSCAN(eps=5.0, min_samples=3)
+        cluster_labels = cluster_model.fit_predict(features)
+        
+        # DBSCAN 中 -1 表示噪声点，可选处理：
+        n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
+        if n_clusters < 1:
+            print("[Warning] DBSCAN did not find any clusters.")
+            return None
+
+    else:
+        raise ValueError(f"Unsupported cluster method: {cluster_method}")
 
     # 打印每类数据在各聚类下的分布数量
     inv_map = {v: k for k, v in label_map.items()}
@@ -101,15 +178,18 @@ def evaluate_model_on_dataset(model_path, dataset_path,pretrained=False):
         for cluster_id, count in clusters.items():
             print(f"  Cluster {cluster_id}: {count} images")
 
-    # 计算每类准确率
-    pred_labels = match_clusters_to_labels(true_labels, cluster_labels)
-    class_acc = {}
-    for i in range(n_clusters):
-        idx = (true_labels == i)
-        acc = np.mean(pred_labels[idx] == true_labels[idx])
-        class_acc[inv_map[i]] = acc
+    ari = adjusted_rand_score(true_labels, cluster_labels)
+    nmi = normalized_mutual_info_score(true_labels, cluster_labels)
 
-    return class_acc
+    # 计算每类准确率
+    # pred_labels = match_clusters_to_labels(true_labels, cluster_labels)
+    # class_acc = {}
+    # for i in range(n_clusters):
+    #     idx = (true_labels == i)
+    #     acc = np.mean(pred_labels[idx] == true_labels[idx])
+    #     class_acc[inv_map[i]] = acc
+
+    return ari,nmi
 
 # ------- 总控制逻辑 -------
 def main():
@@ -136,11 +216,25 @@ def main():
         # for dataset_name in dataset_names:
         #     dataset_path = os.path.join(dataset_root, dataset_name)
         #     print(f" Dataset: {dataset_name}")
-    acc = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
+    if hasattr(args, "model_path") and args.model_path is not None:
+        model_path = args.model_path
+        ari,nmi = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
+    elif hasattr(args, "exp_dir") and args.exp_dir:
+        model_path = find_latest_model_in_experiment(args.exp_dir)
+        ari,nmi = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
+    else:
+        models_path = find_latest_models_across_experiments()
+        for model_path in models_path:
+            ari,nmi = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
+            if ari is not None and nmi is not None:
+                print(f"Adjusted Rand Index (ARI): {ari:.4f}")
+                print(f"Normalized Mutual Information (NMI): {nmi:.4f}")
+            else:
+                print("No valid images.")
     print("\n=== Evaluation Results ===")
-    if acc is not None:
-        for cls, a in acc.items():
-            print(f"Class '{cls}' Accuracy: {a:.4f}")
+    if ari is not None and nmi is not None:
+        print(f"Adjusted Rand Index (ARI): {ari:.4f}")
+        print(f"Normalized Mutual Information (NMI): {nmi:.4f}")
     else:
         print("No valid images.")
 
