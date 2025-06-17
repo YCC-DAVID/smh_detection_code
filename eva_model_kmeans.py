@@ -16,8 +16,10 @@ parser = argparse.ArgumentParser(description='evaluate model on dataset with clu
 
 parser.add_argument('--dataset_path', type=str, required = True,help='Source dataset path')
 parser.add_argument('--model_path', type=str, default = None, help='Path to the model checkpoint')
+parser.add_argument('--exp_pdir', type=str, default = None, help='Path to the experiment checkpoint')
 parser.add_argument("-pretrain", action='store_true')
-parser.add_argument("-cls_mth","--cluster_method", type=str, default='kmeans')
+parser.add_argument('--cluster_method', type=str, default='kmeans', choices=['kmeans', 'dbscan'], help='聚类方法')
+
 
 
 def list_experiments_with_models(root_dir="checkpoints_new"):
@@ -195,49 +197,54 @@ def evaluate_model_on_dataset(model_path, dataset_path,cluster_method,pretrained
 # ------- 总控制逻辑 -------
 def main():
     args = parser.parse_args()
+
     model_path = args.model_path
     dataset_path = args.dataset_path
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model path does not exist: {model_path}") 
+    cluster_method = args.cluster_method if hasattr(args, "cluster_method") else "kmeans"
+
     if not os.path.exists(dataset_path):
         raise FileNotFoundError(f"Dataset path does not exist: {dataset_path}")
+
     if args.pretrain:
         print("Using pretrained model as baseline.")
-    # model_path = '/home/chence/workspace/shm_detection/freezing/smh_detection_code/checkpoints_new/epo_50_srcNAugAme_lr0.0001_ftlr1e-05_ftep5_20250615_164727/training_best_model_2025-06-15_19-18-48.pth'
-    # dataset_path = '/home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug'
 
-    # with open(model_info_path, 'r') as f:
-    #     lines = f.read().strip().splitlines()
+    results = []
 
-    # for line in lines:
-        # model_path, dataset_list_str = line.split(',')
-        # dataset_names = dataset_list_str.split('|')
-        # print(f"\n Evaluating model: {model_path}")
+    if hasattr(args, "model_path") and args.model_path:
+        # 单个模型评估
+        ari, nmi = evaluate_model_on_dataset(model_path, dataset_path, cluster_method, pretrained=args.pretrain)
+        if ari is not None:
+            print("\n=== Evaluation Results ===")
+            print(f"Adjusted Rand Index (ARI): {ari:.4f}")
+            print(f"Normalized Mutual Information (NMI): {nmi:.4f}")
 
-        # for dataset_name in dataset_names:
-        #     dataset_path = os.path.join(dataset_root, dataset_name)
-        #     print(f" Dataset: {dataset_name}")
-    if hasattr(args, "model_path") and args.model_path is not None:
-        model_path = args.model_path
-        ari,nmi = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
     elif hasattr(args, "exp_dir") and args.exp_dir:
+        # 某个实验目录下评估
         model_path = find_latest_model_in_experiment(args.exp_dir)
-        ari,nmi = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
+        if model_path:
+            ari, nmi = evaluate_model_on_dataset(model_path, dataset_path, cluster_method, pretrained=args.pretrain)
+            if ari is not None:
+                print(f"[{args.exp_dir}] ARI: {ari:.4f}, NMI: {nmi:.4f}")
+                results.append((args.exp_dir, ari, nmi))
+
     else:
+        # 遍历所有实验
         models_path = find_latest_models_across_experiments()
-        for model_path in models_path:
-            ari,nmi = evaluate_model_on_dataset(model_path, dataset_path,pretrained=args.pretrain)
-            if ari is not None and nmi is not None:
-                print(f"Adjusted Rand Index (ARI): {ari:.4f}")
-                print(f"Normalized Mutual Information (NMI): {nmi:.4f}")
+        for exp_name, model_path in models_path.items():
+            print(f"\nEvaluating Experiment: {exp_name}")
+            ari, nmi = evaluate_model_on_dataset(model_path, dataset_path, cluster_method, pretrained=args.pretrain)
+            if ari is not None:
+                print(f"  ARI: {ari:.4f}, NMI: {nmi:.4f}")
+                results.append((exp_name, ari, nmi))
             else:
-                print("No valid images.")
-    print("\n=== Evaluation Results ===")
-    if ari is not None and nmi is not None:
-        print(f"Adjusted Rand Index (ARI): {ari:.4f}")
-        print(f"Normalized Mutual Information (NMI): {nmi:.4f}")
-    else:
-        print("No valid images.")
+                print("  [Warning] No valid result.")
+
+    # 统一汇总打印
+    if results:
+        print("\n=== Summary of All Experiments ===")
+        for exp_name, ari, nmi in results:
+            print(f"{exp_name:30s}  ARI: {ari:.4f}  NMI: {nmi:.4f}")
+
 
 if __name__ == '__main__':
     main()
