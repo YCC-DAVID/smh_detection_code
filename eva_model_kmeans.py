@@ -36,10 +36,10 @@ def list_experiments_with_models(root_dir="checkpoints_new"):
         exp_dir = os.path.join(root_dir, name)
         if not os.path.isdir(exp_dir):
             continue
-        
-        for f in os.listdir(exp_dir):
-            if pattern.search(f):
-                print(f"[Found] {f} in {exp_dir}")
+
+        # for f in os.listdir(exp_dir):
+        #     if pattern.search(f):
+        #         print(f"[Found] {f} in {exp_dir}")
 
 
         # 使用 search 而非 match，解决匹配失败问题
@@ -55,9 +55,9 @@ def list_experiments_with_models(root_dir="checkpoints_new"):
 def find_latest_model_in_experiment(exp_dir):
     """
     给定一个实验路径，返回该实验中时间最新的 best_model 的路径。
-    适用于命名格式：training_best_model_2025_06-16_21-19-59.pth
+    适用于命名格式：training_best_model_2025-06-15_17-06-28.pth
     """
-    pattern = re.compile(r'training_best_model_(\d{4}_\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
+    pattern = re.compile(r'training_best_model_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
     best_models = []
 
     for filename in os.listdir(exp_dir):
@@ -65,7 +65,7 @@ def find_latest_model_in_experiment(exp_dir):
         if match:
             time_str = match.group(1)
             try:
-                time = datetime.strptime(time_str, "%Y_%m-%d_%H-%M-%S")
+                time = datetime.strptime(time_str, "%Y-%m-%d_%H-%M-%S")
                 full_path = os.path.join(exp_dir, filename)
                 best_models.append((time, full_path))
             except ValueError:
@@ -74,6 +74,7 @@ def find_latest_model_in_experiment(exp_dir):
     if not best_models:
         return None
     return max(best_models, key=lambda x: x[0])[1]
+
 
 # 3. 汇总所有实验的最新模型路径
 
