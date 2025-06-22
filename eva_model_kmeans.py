@@ -114,6 +114,42 @@ def match_clusters_to_labels(true_labels, cluster_labels):
 def get_feature_extractor(model):
     return torch.nn.Sequential(*list(model.children())[:-1])
 
+
+import csv
+import os
+
+def save_results_to_csv(
+    results,
+    dataset_path,
+    cluster_method,
+    output_path="clustering_evaluation_results.csv"
+):
+    """
+    将聚类评估结果写入 CSV 文件。
+    
+    参数：
+    - results: list of (exp_name, ari, nmi)
+    - dataset_path: str，评估所用数据集路径
+    - cluster_method: str，聚类方法，如 'kmeans' 或 'dbscan'
+    - output_path: str，输出 CSV 文件路径（默认当前目录）
+    """
+    dataset_name = os.path.basename(dataset_path.rstrip("/"))
+    write_header = not os.path.exists(output_path)
+
+    with open(output_path, mode='a', newline='') as f:
+        writer = csv.writer(f)
+        if write_header:
+            writer.writerow(["experiment", "dataset", "cluster_method", "ARI", "NMI"])
+        for exp_name, ari, nmi in results:
+            writer.writerow([
+                exp_name,
+                dataset_name,
+                cluster_method,
+                f"{ari:.4f}",
+                f"{nmi:.4f}"
+            ])
+
+
 # ------- 主评估函数 -------
 def evaluate_model_on_dataset(model_path, dataset_path,cluster_method,pretrained=False):
     transform = transforms.Compose([
@@ -169,9 +205,20 @@ def evaluate_model_on_dataset(model_path, dataset_path,cluster_method,pretrained
 
     # 打印每类数据在各聚类下的分布数量
     inv_map = {v: k for k, v in label_map.items()}
-    cluster_distribution = {inv_map[i]: {cid: 0 for cid in range(n_clusters)} for i in range(n_clusters)}
+
+    cluster_ids = sorted(set(cluster_labels))
+    if -1 in cluster_ids:
+        cluster_ids.remove(-1)
+
+    class_ids = sorted(set(true_labels))
+    cluster_distribution = {
+        inv_map[cls_id]: {cid: 0 for cid in cluster_ids}
+        for cls_id in class_ids
+    }
 
     for t_lbl, c_lbl in zip(true_labels, cluster_labels):
+        if c_lbl == -1:
+            continue
         class_name = inv_map[t_lbl]
         cluster_distribution[class_name][c_lbl] += 1
 
@@ -238,6 +285,10 @@ def main():
                 results.append((exp_name, ari, nmi))
             else:
                 print("  [Warning] No valid result.")
+    
+    if results:
+        # 保存结果到 CSV
+        save_results_to_csv(results, dataset_path, cluster_method)
 
     # 统一汇总打印
     if results:
