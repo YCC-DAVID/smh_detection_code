@@ -26,7 +26,7 @@ def list_experiments_with_models(root_dir="checkpoints_new"):
     """
     返回包含至少一个 training_best_model_*.pth 文件的实验目录名列表。
     """
-    pattern = re.compile(r'training_best_model_(\d{4}_\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
+    pattern = re.compile(r'training_best_model_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
     valid_experiments = []
 
     for name in os.listdir(root_dir):
@@ -67,6 +67,7 @@ def find_latest_model_in_experiment(exp_dir):
     return max(best_models, key=lambda x: x[0])[1]
 
 # 3. 汇总所有实验的最新模型路径
+
 def find_latest_models_across_experiments(root_dir="checkpoints_new"):
     """
     遍历所有实验，返回每个实验中最新的模型路径，形式为字典 {实验名: 最新模型路径}
