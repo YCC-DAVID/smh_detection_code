@@ -28,18 +28,27 @@ def list_experiments_with_models(root_dir="checkpoints_new"):
     """
     pattern = re.compile(r'training_best_model_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})\.pth')
     valid_experiments = []
+    if not os.path.exists(root_dir):
+        print(f"[Warning] Root directory does not exist: {root_dir}")
+        return valid_experiments
 
     for name in os.listdir(root_dir):
         exp_dir = os.path.join(root_dir, name)
         if not os.path.isdir(exp_dir):
             continue
+        
+        for f in os.listdir(exp_dir):
+            if pattern.search(f):
+                print(f"[Found] {f} in {exp_dir}")
 
-        # 检查是否含有匹配模型文件
-        has_model = any(pattern.match(f) for f in os.listdir(exp_dir))
+
+        # 使用 search 而非 match，解决匹配失败问题
+        has_model = any(pattern.search(f) for f in os.listdir(exp_dir))
         if has_model:
             valid_experiments.append(name)
 
     return valid_experiments
+
 
 
 # 2. 获取某个实验中时间戳最新的模型路径
