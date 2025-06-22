@@ -247,7 +247,7 @@ def main():
 
     model_path = args.model_path
     dataset_path = args.dataset_path
-    cluster_method = args.cluster_method if hasattr(args, "cluster_method") else "kmeans"
+    cluster_method = args.cluster_method # if hasattr(args, "cluster_method") else "kmeans"
 
     if not os.path.exists(dataset_path):
         raise FileNotFoundError(f"Dataset path does not exist: {dataset_path}")
@@ -258,6 +258,9 @@ def main():
     results = []
 
     if hasattr(args, "model_path") and args.model_path:
+        print(f"\n=== Evaluating Model: {args.model_path} ===")
+        if not os.path.exists(args.model_path):
+            raise FileNotFoundError(f"Model path does not exist: {args.model_path}")
         # 单个模型评估
         ari, nmi = evaluate_model_on_dataset(model_path, dataset_path, cluster_method, pretrained=args.pretrain)
         if ari is not None:
@@ -266,6 +269,9 @@ def main():
             print(f"Normalized Mutual Information (NMI): {nmi:.4f}")
 
     elif hasattr(args, "exp_dir") and args.exp_dir:
+        print(f"\n=== Evaluating Experiment Directory: {args.exp_dir} ===")
+        if not os.path.exists(args.exp_dir):
+            raise FileNotFoundError(f"Experiment directory does not exist: {args.exp_dir}")
         # 某个实验目录下评估
         model_path = find_latest_model_in_experiment(args.exp_dir)
         if model_path:
@@ -277,6 +283,10 @@ def main():
     else:
         # 遍历所有实验
         models_path = find_latest_models_across_experiments()
+        print("\n=== Evaluating All Experiments ===")
+        if not models_path:
+            print("[Warning] No valid experiments found.")
+            return
         for exp_name, model_path in models_path.items():
             print(f"\nEvaluating Experiment: {exp_name}")
             ari, nmi = evaluate_model_on_dataset(model_path, dataset_path, cluster_method, pretrained=args.pretrain)
