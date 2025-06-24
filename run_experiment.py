@@ -28,7 +28,9 @@ params2 = [#"-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalD
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -lr 7e-6",
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -lr 8e-6",
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -lr 9e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfr -logger -comb_ds -p 2 --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAme -ft -ft_p 4"]
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -p 0",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -p 1",
+           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -p 2",]
 
 params3 = [#"-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-4",
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 5e-5",
@@ -37,7 +39,9 @@ params3 = [#"-epo 50 --src_path /home/shared_data/salmonella_detection/Augmented
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 5e-6",
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 2e-6",
         #    "-epo 50 --src_path /home/shared_data/salmonella_detection/AugmentedData/AmericanDataAug --src_name AugAme -logger -lr 1e-6",
-           "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfr -logger -comb_ds --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAme -ft -ft_p 4",
+            "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -p 3",
+            "-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --src_name OriAme -logger -p 4",
+           #"-epo 50 --src_path /home/shared_data/salmonella_detection/OriginalData/AfricanData --src_name OriAfr -logger -comb_ds --tar_path /home/shared_data/salmonella_detection/OriginalData/AmericanData --tar_name OriAme -ft -ft_p 4",
            
         ]
 
