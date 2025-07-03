@@ -205,7 +205,9 @@ def main():
                     transforms.Resize((224,224)),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],  # ResNet 预训练所用的均值方差
-                                        std=[0.1387, 0.1396, 0.1512])
+                                        std=[0.1387, 0.1396, 0.1512]),
+                    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+                    transforms.RandomRotation(degrees=90, p=0.8),
                                         ])
     srcdataset = datasets.ImageFolder(root=src_path, transform=train_transform)
     train_size = int(0.8 * len(srcdataset))
