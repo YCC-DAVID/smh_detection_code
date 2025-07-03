@@ -63,26 +63,26 @@ def set_seed(seed=42):
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
-def load_checkpoint(model, optimizer, scheduler, device, save_dir):
-    checkpoint_path_file = os.path.join(save_dir, "last_checkpoint.txt")
+# def load_checkpoint(model, optimizer, scheduler, device, save_dir):
+#     checkpoint_path_file = os.path.join(save_dir, "last_checkpoint.txt")
 
-    if not os.path.exists(checkpoint_path_file):
-        print("checkpoint doesn't exist")
-        return model, optimizer, scheduler, 0  # start_epoch = 0
+#     if not os.path.exists(checkpoint_path_file):
+#         print("checkpoint doesn't exist")
+#         return model, optimizer, scheduler, 0  # start_epoch = 0
 
-    # 读取路径
-    with open(checkpoint_path_file, "r") as f:
-        checkpoint_path = f.read().strip()
+#     # 读取路径
+#     with open(checkpoint_path_file, "r") as f:
+#         checkpoint_path = f.read().strip()
 
-    print(f"load checkpoint：{checkpoint_path}")
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+#     print(f"load checkpoint：{checkpoint_path}")
+#     checkpoint = torch.load(checkpoint_path, map_location=device)
 
-    model.load_state_dict(checkpoint["model_state_dict"])
-    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-    scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-    start_epoch = checkpoint["epoch"]
+#     model.load_state_dict(checkpoint["model_state_dict"])
+#     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+#     scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+#     start_epoch = checkpoint["epoch"]
 
-    return model, optimizer, scheduler, start_epoch
+#     return model, optimizer, scheduler, start_epoch
 
 
 
@@ -108,6 +108,56 @@ def get_num_workers():
         return min(8, multiprocessing.cpu_count())
     except:
         return 0
+
+
+# ---------------------------------------------
+# 1.  Non‑linear head definition
+# ---------------------------------------------
+class NonLinearHead(nn.Module):
+    """Two‑layer MLP + ReLU + Dropout used as classification head."""
+
+    def __init__(self, in_features: int, hidden_dim: int = 512,
+                 num_classes: int = 2, dropout: float = 0.25):
+        super().__init__()
+        self.head = nn.Sequential(
+            nn.Linear(in_features, hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, num_classes),
+        )
+
+    def forward(self, x):
+        return self.head(x)
+
+
+def build_model(pretrained: bool = True,
+                hidden_dim: int = 512,
+                num_classes: int = 2,
+                dropout: float = 0.25) -> nn.Module:
+    """Create ResNet‑50 + NonLinearHead."""
+    model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
+    in_features = model.fc.in_features
+    model.fc = NonLinearHead(in_features, hidden_dim, num_classes, dropout)
+    return model
+
+
+def load_checkpoint_if_any(model: nn.Module, optimizer: optim.Optimizer, scheduler: CosineAnnealingLR,
+                           save_dir: str, device: torch.device, resume_flag: bool):
+    """Resume model/optimizer/scheduler if `resume_flag` True and record file exists."""
+    start_epoch = 0
+    if resume_flag:
+        record_path = os.path.join(save_dir, "last_checkpoint.txt")
+        if not os.path.exists(record_path):
+            raise FileNotFoundError("Checkpoint record not found; can't resume.")
+        with open(record_path, "r", encoding="utf‑8") as f:
+            ckpt_path = f.read().strip()
+        ckpt = torch.load(ckpt_path, map_location=device)
+        model.load_state_dict(ckpt["model_state_dict"])
+        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+        start_epoch = ckpt.get("epoch", -1) + 1
+        print(f"⇒ Resumed from {ckpt_path} (start epoch {start_epoch})")
+    return model, optimizer, scheduler, start_epoch
 
 
 
@@ -143,53 +193,46 @@ def main():
     tar_path = args.tar_path #'/home/shared_data/salmonella_detection/OriginalData/AmericanData'
     generator = torch.Generator().manual_seed(42)
 
-    if os.path.exists(src_path):
-        srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
-        # mean, std = compute_mean_std(srcdataset)
-        # print("Mean:", mean)                #Mean: tensor([0.5586, 0.5077, 0.4405])
-        # print("Std:", std)                  #Std: tensor([0.1756, 0.1774, 0.1781])
-        transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
-        transforms.Resize((224,224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],  # ResNet 预训练所用的均值方差
-                            std=[0.1387, 0.1396, 0.1512])
-                            ])
-        srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
-        train_size = int(0.8 * len(srcdataset))
-        val_size = len(srcdataset) - train_size
-        train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
-        train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
-        val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
-    else:
-        raise FileNotFoundError(f"Path does not exist: {src_path}")
+    # if os.path.exists(src_path):
+    #     srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
+    #     # mean, std = compute_mean_std(srcdataset)
+    #     # print("Mean:", mean)                #Mean: tensor([0.5586, 0.5077, 0.4405])
+    #     # print("Std:", std)                  #Std: tensor([0.1756, 0.1774, 0.1781])
+    train_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(p=0.5),
+                    transforms.RandomVerticalFlip(p=0.2),
+                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
+                    transforms.Resize((224,224)),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],  # ResNet 预训练所用的均值方差
+                                        std=[0.1387, 0.1396, 0.1512])
+                                        ])
+    srcdataset = datasets.ImageFolder(root=src_path, transform=train_transform)
+    train_size = int(0.8 * len(srcdataset))
+    val_size = len(srcdataset) - train_size
+    train_dataset, val_dataset = random_split(srcdataset, [train_size, val_size], generator=generator)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+    val_loader   = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
+    # else:
+    #     raise FileNotFoundError(f"Path does not exist: {src_path}")
 
-    if hasattr(args,"finetune") and args.finetune is True:
-        if os.path.exists(tar_path):
-            tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
-            ft_size = int(0.7 * len(tardataset))
-            ft_val_size = len(tardataset) - ft_size
-            ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
-            ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
-            ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
+    # if hasattr(args,"finetune") and args.finetune is True:
+    #     if os.path.exists(tar_path):
+    #         tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
+    #         ft_size = int(0.7 * len(tardataset))
+    #         ft_val_size = len(tardataset) - ft_size
+    #         ft_dataset, ft_val_dataset = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
+    #         ft_loader = DataLoader(ft_dataset, batch_size=32, shuffle=True, num_workers=0)
+    #         ft_val_loader = DataLoader(ft_val_dataset, batch_size=32, shuffle=False, num_workers=0)
 
-        else:
-            raise FileNotFoundError(f"Path does not exist: {tar_path}")
+    #     else:
+    #         raise FileNotFoundError(f"Path does not exist: {tar_path}")
+        
     if hasattr(args, 'combine_dataset') and args.combine_dataset is True:
         if os.path.exists(tar_path):
-
-            
-            # 合并源数据集和目标数据集
-            # 读取 srcdataset 先统一类别
-            srcdataset = datasets.ImageFolder(root=src_path, transform=transform)
-            # shared_class_to_idx = srcdataset.class_to_idx
-
-            # # 用相同的 class_to_idx 加载目标集
-            tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
-            # tardataset.class_to_idx = shared_class_to_idx
-            combined_dataset = UnifiedImageFolderDataset(src_dataset=srcdataset,tar_dataset=tardataset,transform=transform)
+            srcdataset = datasets.ImageFolder(root=src_path, transform=train_transform)
+            tardataset = datasets.ImageFolder(root=tar_path, transform=train_transform)
+            combined_dataset = UnifiedImageFolderDataset(src_dataset=srcdataset,tar_dataset=tardataset,transform=train_transform)
 
             # tardataset = datasets.ImageFolder(root=tar_path, transform=transform)
             # combined_dataset = ConcatDataset([srcdataset, tardataset])
@@ -205,35 +248,25 @@ def main():
 
 
 # 加载预训练的 ResNet50
-    model = models.resnet50(pretrained=True)
-
-    # 替换最后一层为二分类
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)  # 二分类
-
+    
     # 如果你有 GPU 可用：
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
+    model = build_model(pretrained=True).to(device)
 
 
     save_dir = "checkpoints"
     checkpoint_record = os.path.join(save_dir, "last_checkpoint.txt")
     if hasattr(args, 'resume') and args.resume is True:
-        if  os.path.exists(checkpoint_record): 
-            print("checkpoint exist")
-            with open(checkpoint_record, "r") as f:
-                checkpoint_path = f.read().strip()
-            checkpoint = torch.load(checkpoint_path, map_location=device)
-            model.load_state_dict(checkpoint["model_state_dict"])
-            ft_epochs = args.fine_epoch
-            print(f"model loaded from {checkpoint_path}")
-        else:
-            raise FileNotFoundError(f"checkpoint does not exist")
+        model, optimizer, scheduler, start_epoch = load_checkpoint_if_any(
+        model, optimizer, scheduler, save_dir=paths["ckpt_dir"], device=device, resume_flag=args.resume)
+
     # criterion = nn.CrossEntropyLoss()
 
     if hasattr(args, 'position') and args.position is not None:
         check_freez_block_res50(model,args.position[0]) # freeze the conv layer not bn layer
         check_active_block_res50(model,args.position[0]+1) # unfreeze the rest block
+
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4,)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs,eta_min=1e-6)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2,eta_min=1e-6)
@@ -243,6 +276,12 @@ def main():
 
     
     if hasattr(args,'finetune') and args.finetune is True:
+        tardataset = datasets.ImageFolder(root=args.tar_path, transform=train_transform)
+        ft_size = int(0.7 * len(tardataset))
+        ft_val_size = len(tardataset) - ft_size
+        ft_ds, ft_val_ds = random_split(tardataset, [ft_size, ft_val_size], generator=generator)
+        ft_loader = DataLoader(ft_ds, batch_size=32, shuffle=True, num_workers=get_num_workers())
+        ft_val_loader = DataLoader(ft_val_ds, batch_size=32, shuffle=False, num_workers=get_num_workers())
         if hasattr(args,'finetune_position') and args.finetune_position is not None:
             check_freez_block_res50(model,args.finetune_position[0])
             check_active_block_res50(model,args.finetune_position[0]+1)

@@ -5,6 +5,10 @@ import torch.optim as optim
 from torch.utils.data import DataLoader,random_split
 from torchvision import transforms, models, datasets
 from tqdm import tqdm
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
+from typing import List, Tuple
 from datetime import datetime
 
 
@@ -66,8 +70,11 @@ class Trainer:
         self.best_val_acc = 0.0
         self.logger = logger
         self.status = status
-
         os.makedirs(self.save_dir, exist_ok=True)
+
+        self.feature_extractor = nn.Sequential(*(list(self.model.children())[:-1]))
+        self.feature_extractor.to(device)
+        self.feature_extractor.eval()
 
     def train_one_epoch(self):
         self.model.train()
@@ -106,6 +113,25 @@ class Trainer:
                 total += labels.size(0)
 
         return total_loss / total, correct / total
+    
+    def _evaluate_embeddings(self) -> Tuple[float, float]:
+        self.feature_extractor.eval()
+        all_feats: List[np.ndarray] = []
+        all_labels: List[int] = []
+        with torch.no_grad():
+            for images, labels in self.val_loader:
+                images = images.to(self.device)
+                feats = self.feature_extractor(images).squeeze(-1).squeeze(-1)  # [B, 2048]
+                all_feats.append(feats.cpu().numpy())
+                all_labels.append(labels.numpy())
+        X = np.concatenate(all_feats, axis=0)
+        y = np.concatenate(all_labels, axis=0)
+
+        n_clusters = len(np.unique(y))
+        preds = KMeans(n_clusters=n_clusters, random_state=0).fit_predict(X)
+        ari = adjusted_rand_score(y, preds)
+        nmi = normalized_mutual_info_score(y, preds)
+        return ari, nmi
 
     def save_model(self, epoch, is_best=False):
         time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -140,13 +166,16 @@ class Trainer:
         for epoch in range(epochs):
             train_loss, train_acc = self.train_one_epoch()
             val_loss, val_acc = self.validate()
+            ari, nmi = self._evaluate_embeddings()
             self.scheduler.step()
 
             print(self.status,f"[Epoch {epoch+1}] "
                   f"Train Loss: {train_loss:.4f}, Acc: {train_acc:.4f} | "
-                  f"Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
+                  f"Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f} |" 
+                  f"ARI:{ari:.3f} NMI:{nmi:.3f}")
             if self.logger is not None:
-                self.logger.log({"Train Loss":train_loss,"Train Acc":train_acc,"Val loss":val_loss,"Val acc":val_acc})
+                self.logger.log({"Train Loss":train_loss,"Train Acc":train_acc,"Val loss":val_loss,"Val acc":val_acc,"ARI": ari,
+                    "NMI": nmi,})
 
             # 保存当前 epoch 的模型
             if (epoch + 1) % 10 == 0:
