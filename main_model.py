@@ -273,7 +273,7 @@ def main():
     
     # 如果你有 GPU 可用：
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_model(pretrained=True).to(device)
+    model = build_model(pretrained=True,head=args.head).to(device)
 
 
     save_dir = "checkpoints"
