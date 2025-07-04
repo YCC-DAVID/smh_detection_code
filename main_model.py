@@ -18,6 +18,7 @@ from compute_norm import compute_mean_std
 from cad_utils import generate_name,get_handle_front,check_active_block_res50,check_freez_block_res50,UnifiedImageFolderDataset
 
 parser = argparse.ArgumentParser(description='Propert ResNets for smh_dection in pytorch')
+## training
 parser.add_argument('-p', '--position',nargs = '+', default=None, type=int, metavar='N',
                     help='The position to freeze')
 parser.add_argument('-resume', '--resume', action='store_true',
@@ -29,6 +30,7 @@ parser.add_argument('--src_name', type=str, default=None,help='Source dataset ab
 
 parser.add_argument('-lr',type=float,default=1e-4, metavar='N',
                     help='initial learning rate')
+parser.add_argument("--head", choices=["mlp","linear","proto"], default="mlp")
 ## finetune
 parser.add_argument('-ft', '--finetune', action='store_true',
                     help='if exist checkpoint will be use')
@@ -131,13 +133,31 @@ class NonLinearHead(nn.Module):
 
 
 def build_model(pretrained: bool = True,
+                head: str = "mlp",
                 hidden_dim: int = 512,
                 num_classes: int = 2,
                 dropout: float = 0.25) -> nn.Module:
-    """Create ResNet‑50 + NonLinearHead."""
+    """Create ResNet‑50 with selectable head.
+
+    Args:
+        pretrained : Load ImageNet weights.
+        head       : "mlp" | "linear" | "identity"/"proto".
+        hidden_dim : Hidden units for MLP head.
+        num_classes: Output classes for linear / mlp.
+        dropout    : Dropout for MLP head.
+    """
     model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
     in_features = model.fc.in_features
-    model.fc = NonLinearHead(in_features, hidden_dim, num_classes, dropout)
+
+    head = head.lower()
+    if head == "mlp":
+        model.fc = NonLinearHead(in_features, hidden_dim, num_classes, dropout)
+    elif head == "linear":
+        model.fc = nn.Linear(in_features, num_classes)
+    elif head in {"identity", "proto"}:  # proto == no classifier; external metric
+        model.fc = nn.Identity()
+    else:
+        raise ValueError(f"Unsupported head type: {head}. Choose mlp / linear / proto")
     return model
 
 
