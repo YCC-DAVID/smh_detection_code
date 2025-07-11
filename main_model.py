@@ -7,6 +7,7 @@ import trainer
 from torch.optim.lr_scheduler import CosineAnnealingLR,CosineAnnealingWarmRestarts
 import numpy as np
 import random
+import mini_resnet
 import os
 import wandb
 import glob
@@ -133,7 +134,7 @@ class NonLinearHead(nn.Module):
 
 
 def build_model(pretrained: bool = True,
-                head: str = "mlp",
+                head: str = "linear",
                 hidden_dim: int = 512,
                 num_classes: int = 2,
                 dropout: float = 0.25) -> nn.Module:
@@ -147,6 +148,7 @@ def build_model(pretrained: bool = True,
         dropout    : Dropout for MLP head.
     """
     model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
+    model = mini_resnet.MiniResNet(num_classes=2)
     in_features = model.fc.in_features
 
     head = head.lower()
@@ -226,8 +228,8 @@ def main():
                     transforms.ToTensor(),
                     transforms.Normalize(mean=[0.5384, 0.5349, 0.5192],  # ResNet 预训练所用的均值方差
                                         std=[0.1387, 0.1396, 0.1512]),
-                    # transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
-                    # transforms.RandomRotation(degrees=90),
+                    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
+                    transforms.RandomRotation(degrees=90),
                                         ])
     srcdataset = datasets.ImageFolder(root=src_path, transform=train_transform)
     train_size = int(0.8 * len(srcdataset))
